@@ -13,6 +13,7 @@ if __name__ == "__main__":
     parser.add_argument("-seed", "--seed", help="random_seed", type=int)
     parser.add_argument("-param", "--param", help = "coef, coef_bootstrap, auc, auc_bootstrap, or best_lambda", type = str)
 
+    args = parser.parse_args()
     mb = basic_ml()
     path = 'inputs/week_one_metabs/'
     with open(path + 'w1_x.pkl','rb') as f:
@@ -33,7 +34,6 @@ if __name__ == "__main__":
         final_res_dict = {}
         print('initialized at seed ' + str(args.seed))
 
-    args = parser.parse_args()
     seed = args.seed
 
     model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', random_state = seed, solver = 'liblinear')
