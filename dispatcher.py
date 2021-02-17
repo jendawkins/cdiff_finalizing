@@ -63,7 +63,7 @@ echo $TMPDIR
 module load anaconda/default
 source activate dispatcher
 
-cd /PHShome/jjd65/CDIFF/cdiff_finalizing
+cd /PHShome/jjd65/cdiff_finalizing
 
 python3 ./main.py -seed {0} -param {1}
 '''
