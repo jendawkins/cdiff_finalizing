@@ -20,17 +20,18 @@ if __name__ == "__main__":
     with open(path + 'w1_y.pkl','rb') as f:
         y = pkl.load(f)
 
-    try:
-        with open(path_out + args.param + '.pkl','rb') as f:
-            final_res_dict = pkl.load(f)
-    except:
-        final_res_dict = {}
-
     coef_names = x.columns.values
 
     path_out = 'outputs/'+ str(datetime.now()).split(' ')[0] + '/'
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
+
+    try:
+        with open(path_out + args.param + '.pkl','rb') as f:
+            final_res_dict = pkl.load(f)
+    except:
+        final_res_dict = {}
+        print('initialized at seed ' + str(args.seed))
 
     args = parser.parse_args()
     seed = args.seed
