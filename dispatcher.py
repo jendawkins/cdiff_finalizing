@@ -68,7 +68,7 @@ cd /PHShome/jjd65/cdiff_finalizing
 python3 ./main.py -seed {0} -param {1}
 '''
 
-for param in ['coef_bootstrap','auc_bootstrap','best_lambda','coef']:
+for param in ['auc_bootstrap','coef_bootstrap','best_lambda','coef']:
     for seed in range(100):
         fname = 'cdiff_lr.lsf'
         f = open(fname, 'w')

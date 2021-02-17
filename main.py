@@ -21,7 +21,7 @@ if __name__ == "__main__":
         y = pkl.load(f)
 
     try:
-        with open(path_out + args.param + '_' + str(datetime.now()).split(' ')[0] + '.pkl','rb') as f:
+        with open(path_out + args.param + '.pkl','rb') as f:
             final_res_dict = pkl.load(f)
     except:
         final_res_dict = {}
