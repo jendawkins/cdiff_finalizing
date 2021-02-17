@@ -1,0 +1,10 @@
+*.ipynb
+old_scripts/
+outputs*
+*.R
+non_nested*
+old_notebooks/
+data/
+*.nhx
+phylo_tree_check_jan13/
+preds/
