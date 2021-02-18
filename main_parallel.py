@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     coef_names = x.columns.values
 
-    path_out = 'outputs/'+ str(datetime.now()).split(' ')[0] + '/'
+    path_out = 'outputs/'
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
 
@@ -51,7 +51,8 @@ if __name__ == "__main__":
         X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
         res_dict = mb.nested_cv_func(model, X_train, y_train, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, learn_var = 'C')
-        final_res_dict[seed] = res_dict
+        if args.ix not in final_res_dict[seed].keys():
+            final_res_dict[seed][args.ix] = res_dict
 
     if args.param == 'best_lambda':
         auc = {}

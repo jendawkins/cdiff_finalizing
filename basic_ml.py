@@ -2,6 +2,7 @@ from helper import *
 from ml_methods import *
 from datetime import datetime
 import sklearn
+import time
 
 class basic_ml():
     def __init__(self):
@@ -124,20 +125,27 @@ class basic_ml():
             ts_true, ts_pred, ts_probs, loss_vec, clf = self.train_func(model, ix, X, y, tmpts, \
                 ts_true, ts_pred, ts_probs, loss_vec)
             
-            coefs_all[ic] = clf.coef_
+            try:
+                coefs_all[ic] = clf.coef_
+            except:
+                continue
             model_all[ic] = clf
 
             print('split ' + str(ic) + ' complete')
         ret_dict = get_metrics(ts_pred, ts_true, ts_probs)
+        print(ts_true)
+        print(ts_pred)
+        print(ts_probs)
 
         final_res_dict['metrics'] = ret_dict
-        final_res_dict['coef'] = coefs_all
+        if len(coefs_all) >0:
+            final_res_dict['coef'] = coefs_all
         final_res_dict['model'] = model_all
         return final_res_dict
 
 
     
-    def nested_cv_func(self, model, x, targets, feature_grid = np.logspace(-3, 3, 50), \
+    def nested_cv_func(self, model, x, targets, feature_grid = np.logspace(-3, 3, 100), \
         split_outer = leave_one_out_cv, split_inner = leave_one_out_cv, learn_var = 'C', nzero_thresh = 10, \
             name = '', dtype = 'metabolites', ttype = 'week_one', folds = None, optim_param = 'auc', plot_lambdas = False, stop_lambdas = False):
         seed, X, y = self.starter(model, x, targets, dtype, ttype)
@@ -162,6 +170,7 @@ class basic_ml():
 
             ixs_inner = split_inner(X_train, y_train, folds = folds, ddtype = ttype) 
             lambdict = {}
+            start = time.time()
             for lamb in feature_grid:
                 lambdict[lamb] = {}
 
@@ -182,7 +191,9 @@ class basic_ml():
 
                 lambdict[lamb] = met_dict
                 lambdict[lamb]['loss'] = np.sum(loss_vec_in)/len(loss_vec_in)
-
+            end = time.time()
+            # if ic == 0:
+            #     print('Time for innermost loop: ' + str(end - start))
             lambdas = list(lambdict.keys())
             key = optim_param
             vec = np.array([lambdict[it][key] for it in lambdas])
@@ -212,7 +223,8 @@ class basic_ml():
         
             best_auc_vec.append(best_param)
             best_auc_vec_ma.append(best_param_ma)
-        print('Random seed ' + str(seed)+ ' Complete')
+        
+        # print('Random seed ' + str(seed)+ ' Complete')
         ret_dict = get_metrics(ts_pred, ts_true, ts_probs)
 
         final_res_dict['best_lambda'] = best_lambdas
@@ -221,7 +233,7 @@ class basic_ml():
         final_res_dict['model'] = model_all
         return final_res_dict
 
-    def double_nest(self, model, x, targets, feature_grid = np.logspace(-3, 3, 200), \
+    def double_nest(self, model, x, targets, feature_grid = np.logspace(-3, 3, 100), \
         split_outer = leave_one_out_cv, split_inner = leave_one_out_cv, learn_var = 'C', nzero_thresh = 10, \
             name = '', dtype = 'metabolites', ttype = 'week_one', folds = None, optim_param = 'auc', plot_lambdas = True):
         seed, X, y = self.starter(model, x, targets, dtype, ttype)
@@ -237,10 +249,11 @@ class basic_ml():
             train_index, test_index = ix
             X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
             y_train, y_test = y[train_index], y[test_index]
+            start = time.time()
             res_dict = self.nested_cv_func(model, X_train, y_train, feature_grid = feature_grid, \
                 split_outer = split_outer, split_inner = split_inner, learn_var = learn_var, nzero_thresh = nzero_thresh, \
                 name = name, dtype = dtype, ttype = ttype, folds = folds, optim_param = optim_param, plot_lambdas = plot_lambdas)
-
+            end = time.time()
             for metric in list(res_dict['metrics'].keys()):
                 if metric in out_metrics.keys():
                     out_metrics[metric].append(res_dict['metrics'][metric])
@@ -248,6 +261,8 @@ class basic_ml():
                     out_metrics[metric] = [res_dict['metrics'][metric]]
             coef_vec.append(res_dict['coef'])
             model_vec.append(res_dict['model'])
+            # print('idx ' + str(ic) + ' complete for outermost nest')
+            # print('Time for middle nest ' + str(end - start))
                 
         final_res_dict['metrics'] = out_metrics
         final_res_dict['coef'] = coef_vec
