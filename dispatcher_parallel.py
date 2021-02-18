@@ -60,8 +60,8 @@ echo $TMPDIR
 
 # Add your job command here
 # Load module
-module load anaconda/default
-source activate dispatcher
+# module load anaconda/default
+# source activate dispatcher
 
 cd /PHShome/jjd65/cdiff_finalizing
 
