@@ -34,7 +34,7 @@ if __name__ == "__main__":
     except:
         final_res_dict = {}
         f1 = open("InitializationLogger.txt","a")
-        f1.write(args.param + ' ' + args.ix + ' initialized at seed ' + str(args.seed))
+        f1.write(args.param + ' ' + str(args.ix) + ' initialized at seed ' + str(args.seed))
         f1.close()
 
     seed = args.seed
