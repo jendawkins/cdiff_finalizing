@@ -33,9 +33,13 @@ if __name__ == "__main__":
             final_res_dict = pkl.load(f)
     except:
         final_res_dict = {}
-        print('initialized at seed ' + str(args.seed))
+        f1 = open("InitializationLogger.txt","a")
+        f1.write(args.param + ' ' + args.ix + ' initialized at seed ' + str(args.seed))
+        f1.close()
 
     seed = args.seed
+    if seed not in final_res_dict.keys():
+        final_res_dict[seed] = {}
 
     model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', random_state = seed, solver = 'liblinear')
     if args.param == 'coef_bootstrap' or args.param == 'auc':
@@ -68,7 +72,9 @@ if __name__ == "__main__":
     with open(path_out + args.param+ '.pkl','wb') as f:
         pickle.dump(final_res_dict, f)
     
-    print(str(args.seed) + ' complete for ' + args.param)
+    f2 = open("Complete.txt","a")
+    f2.write(str(args.seed) + ' complete for ' + args.param +' at ' + str(args.ix))
+    f2.close()
         
     
 
