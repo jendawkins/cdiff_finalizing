@@ -6,9 +6,11 @@ import pandas as pd
 import numpy as np
 import argparse
 import os
+import time
 
 if __name__ == "__main__":
 
+    start = time.time()
     parser = argparse.ArgumentParser()
     parser.add_argument("-seed", "--seed", help="random_seed", type=int)
     parser.add_argument("-param", "--param", help = "coef, coef_bootstrap, auc, auc_bootstrap, or best_lambda", type = str)
@@ -72,8 +74,10 @@ if __name__ == "__main__":
     with open(path_out + args.param+ '.pkl','wb') as f:
         pickle.dump(final_res_dict, f)
     
-    f2 = open("Complete.txt","a")
-    f2.write(str(args.seed) + ' complete for ' + args.param +' at ' + str(args.ix))
+    end = time.time()
+    passed = np.round((end - start)/60, 3)
+    f2 = open(args.param + ".txt","a")
+    f2.write(str(args.seed) + ' complete at ' + str(args.ix) +  ' in ' + str(passed) + ' minutes' + '\n')
     f2.close()
         
     
