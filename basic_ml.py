@@ -70,18 +70,17 @@ class basic_ml():
             ts_pred_in.append(int(y_guess.squeeze()))
             ts_probs_in.append(y_probs[:,1].squeeze())
 
-        loss = (-y_test_in * np.log(y_probs[:, 1]) - (1-y_test_in)*np.log(1-y_probs[:, 1]))
-        if loss.shape[0]>1:
-            loss = (np.sum(loss)/loss.shape[0]).item()
-        else:
-            loss = loss.item()
-        if np.isnan(loss):
+        if (y_probs[:,1] == 0).any() or ((1-y_probs[:, 1])==0).any():
             try:
                 loss = 1 if y_test_in.item() == y_probs[:,1].item() else 0
             except:
                 loss = np.sum(1-(y_test_in == y_probs[:, 1]).astype(int))/len(y_test_in)
-        if np.isinf(loss):
-            loss = 99
+        else:
+            loss = (-y_test_in * np.log(y_probs[:, 1]) - (1-y_test_in)*np.log(1-y_probs[:, 1]))
+        if loss.shape[0]>1:
+            loss = (np.sum(loss)/loss.shape[0]).item()
+        else:
+            loss = loss.item()
         # import pdb; pdb.set_trace()
         loss_vec_in.append(loss)
         # assert(y_guess.item() == np.round(y_probs[:,1].item()))
@@ -202,11 +201,11 @@ class basic_ml():
             best_param_ma = np.max(ma)
             offset = int(np.floor(5./2))
             if key == 'loss':
-                max_ix  = np.argmin(ma) + offset
-                # max_ix  = np.argmin(vec)
+                # max_ix  = np.argmin(ma) + offset
+                max_ix  = np.argmin(vec)
             else:
-                max_ix = np.argmax(ma) + offset
-                # max_ix = np.argmax(ma)
+                # max_ix = np.argmax(ma) + offset
+                max_ix = np.argmax(vec)
             best_lambda = np.min(np.array(lambdas)[max_ix])
 
             if plot_lambdas:
