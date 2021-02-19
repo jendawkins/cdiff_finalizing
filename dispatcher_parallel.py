@@ -69,7 +69,7 @@ python3 ./main_parallel.py -seed {0} -param {1} -ix {2}
 '''
 
 for param in ['coef_bootstrap','best_lambda','coef','auc_bootstrap']:
-    for seed in range(100):
+    for seed in range(50):
         if param == 'auc_bootstrap':
             for ic in range(48):
                 fname = 'cdiff_lr.lsf'
