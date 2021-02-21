@@ -26,7 +26,7 @@ my_str = '''
 # Please make a copy of this script for your own modifications
 
 #BSUB -q big-multi
-#BSUB -n 8
+#BSUB -n 50
 #BSUB -M 10000
 #BSUB -R rusage[mem=10000]
 
@@ -68,7 +68,7 @@ cd /PHShome/jjd65/cdiff_finalizing
 python3 ./main_parallel.py -seed {0} -param {1} -ix {2}
 '''
 
-for param in ['coef_bootstrap','best_lambda','coef','auc_bootstrap']:
+for param in ['auc_bootstrap']:
     for seed in range(50):
         if param == 'auc_bootstrap':
             for ic in range(48):
