@@ -3,6 +3,7 @@ import os
 import shutil
 import argparse
 import pickle
+import time
 
 my_str = '''
 #!/bin/bash
@@ -63,22 +64,25 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./main_parallel.py -seed {0} -param {1} -ix {2}
+python3 ./main_parallel.py -seed {0} -param {1} -ix {2} -sa {3}
 '''
 
-for param in ['auc_bootstrap']:
-    for seed in range(50):
-        if param == 'auc_bootstrap':
-            for ic in range(48):
+for param in ['auc_bootstrap', 'auc']:
+    for sa in [True, False]:
+        for seed in range(50):
+            if param == 'auc_bootstrap':
+                for ic in range(48):
+                    fname = 'cdiff_lr.lsf'
+                    f = open(fname, 'w')
+                    f.write(my_str.format(seed, param, ic, sa))
+                    f.close()
+                    os.system('bsub < {}'.format(fname))
+            else:
+                ic = 0
                 fname = 'cdiff_lr.lsf'
                 f = open(fname, 'w')
                 f.write(my_str.format(seed, param, ic))
                 f.close()
                 os.system('bsub < {}'.format(fname))
-        else:
-            ic = 0
-            fname = 'cdiff_lr.lsf'
-            f = open(fname, 'w')
-            f.write(my_str.format(seed, param, ic))
-            f.close()
-            os.system('bsub < {}'.format(fname))
+
+            time.sleep(0.5)

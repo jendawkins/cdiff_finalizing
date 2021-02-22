@@ -146,7 +146,8 @@ class basic_ml():
     
     def nested_cv_func(self, model, x, targets, feature_grid = np.logspace(-3, 3, 100), \
         split_outer = leave_one_out_cv, split_inner = leave_one_out_cv, learn_var = 'C', nzero_thresh = 10, \
-            name = '', dtype = 'metabolites', ttype = 'week_one', folds = None, optim_param = 'auc', plot_lambdas = False, stop_lambdas = False):
+            name = '', dtype = 'metabolites', ttype = 'week_one', folds = None, optim_param = 'auc', plot_lambdas = False, \
+                stop_lambdas = False, smooth_auc = True):
         seed, X, y = self.starter(model, x, targets, dtype, ttype)
         final_res_dict = {}
 
@@ -201,11 +202,15 @@ class basic_ml():
             best_param_ma = np.max(ma)
             offset = int(np.floor(5./2))
             if key == 'loss':
-                # max_ix  = np.argmin(ma) + offset
-                max_ix  = np.argmin(vec)
+                if smooth_auc:
+                    max_ix  = np.argmin(ma) + offset
+                else:
+                    max_ix  = np.argmin(vec)
             else:
-                # max_ix = np.argmax(ma) + offset
-                max_ix = np.argmax(vec)
+                if smooth_auc:
+                    max_ix = np.argmax(ma) + offset
+                else:
+                    max_ix = np.argmax(vec)
             best_lambda = np.min(np.array(lambdas)[max_ix])
 
             if plot_lambdas:
