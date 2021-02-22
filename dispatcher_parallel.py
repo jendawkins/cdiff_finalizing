@@ -81,7 +81,7 @@ for param in ['auc_bootstrap', 'auc']:
                 ic = 0
                 fname = 'cdiff_lr.lsf'
                 f = open(fname, 'w')
-                f.write(my_str.format(seed, param, ic))
+                f.write(my_str.format(seed, param, ic, sa))
                 f.close()
                 os.system('bsub < {}'.format(fname))
 
