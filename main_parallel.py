@@ -33,11 +33,11 @@ if __name__ == "__main__":
     else:
         path_out = 'outputs'
     
-    if args.sa:
+    if args.sa is True or args.sa is None:
         path_out = path_out + '_smooth/'
-    else:
-        path_out = path_out + '/'
-        
+    elif args.sa is False:
+        path_out = path_out + '_not_smooth/'
+
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
 

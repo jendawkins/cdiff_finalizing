@@ -76,7 +76,7 @@ if not args.o:
     sys.exit(1)
 
 
-for param in ['auc_bootstrap', 'auc']:
+for param in ['auc','auc_bootstrap']:
     for sa in [True, False]:
         for seed in range(50):
             if param == 'auc_bootstrap':
