@@ -15,6 +15,8 @@ if __name__ == "__main__":
     parser.add_argument("-seed", "--seed", help="random_seed", type=int)
     parser.add_argument("-param", "--param", help = "coef, coef_bootstrap, auc, auc_bootstrap, or best_lambda", type = str)
     parser.add_argument("-ix", "--ix", help = "index for splits", type = int)
+    parser.add_argument("-sa", "--sa", help = "smooth auc or not", type = bool)
+    parser.add_argument("-o", "--o", help = "outpath", type = str)
 
     args = parser.parse_args()
     mb = basic_ml()
@@ -26,7 +28,10 @@ if __name__ == "__main__":
 
     coef_names = x.columns.values
 
-    path_out = 'outputs/'
+    if args.o:
+        path_out = args.o + '/'
+    else:
+        path_out = 'outputs/'
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
 
@@ -56,7 +61,7 @@ if __name__ == "__main__":
         train_index, test_index = ixs[args.ix]
         X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
-        res_dict = mb.nested_cv_func(model, X_train, y_train, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, learn_var = 'C')
+        res_dict = mb.nested_cv_func(model, X_train, y_train, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, learn_var = 'C', smooth_auc=args.sa)
         if args.ix not in final_res_dict[seed].keys():
             final_res_dict[seed][args.ix] = res_dict
 

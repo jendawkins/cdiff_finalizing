@@ -77,6 +77,7 @@ for param in ['auc_bootstrap', 'auc']:
                     f.write(my_str.format(seed, param, ic, sa))
                     f.close()
                     os.system('bsub < {}'.format(fname))
+                time.sleep(0.5)
             else:
                 ic = 0
                 fname = 'cdiff_lr.lsf'
@@ -85,4 +86,5 @@ for param in ['auc_bootstrap', 'auc']:
                 f.close()
                 os.system('bsub < {}'.format(fname))
 
-            time.sleep(0.5)
+        time.sleep(0.5)
+
