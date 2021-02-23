@@ -29,6 +29,8 @@ my_str = '''
 
 #BSUB -q big-multi
 #BSUB -n 12
+#BSUB -M 10000
+#BSUB -R rusage[mem=10000]
 
 # Some important variables to check (Can be removed later)
 echo '---PROCESS RESOURCE LIMITS---'
@@ -65,7 +67,7 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./main_parallel.py -seed {0} -param {1} -ix {2} -o {4}
+python3 ./main_parallel.py -seed {0} -param {1} -ix {2} -o {3}
 '''
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--o", help = "outpath", type = str)
