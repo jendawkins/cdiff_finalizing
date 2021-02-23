@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument("-seed", "--seed", help="random_seed", type=int)
     parser.add_argument("-param", "--param", help = "coef, coef_bootstrap, auc, auc_bootstrap, or best_lambda", type = str)
     parser.add_argument("-ix", "--ix", help = "index for splits", type = int)
-    parser.add_argument("-sa", "--sa", help = "smooth auc or not", type = bool)
+    parser.add_argument("-sa", "--sa", help = "smooth auc or not", type = int)
     parser.add_argument("-o", "--o", help = "outpath", type = str)
 
     args = parser.parse_args()
@@ -33,6 +33,9 @@ if __name__ == "__main__":
     else:
         path_out = 'outputs'
     
+    if isinstance(args.sa, int):
+        args.sa = args.sa == 1
+
     if args.sa is True or args.sa is None:
         path_out = path_out + '_smooth/'
     elif args.sa is False:
@@ -56,7 +59,7 @@ if __name__ == "__main__":
 
     model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', random_state = seed, solver = 'liblinear')
     if args.param == 'coef_bootstrap' or args.param == 'auc':
-        final_res_dict[seed] = mb.nested_cv_func(model, x, y, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, learn_var = 'C')
+        final_res_dict[seed] = mb.nested_cv_func(model, x, y, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, learn_var = 'C', smooth_auc = args.sa)
         
     if args.param == 'coef':
         final_res_dict[seed] = mb.fit_all(model, x, y, dtype = 'metabolites', optim_param = 'auc')

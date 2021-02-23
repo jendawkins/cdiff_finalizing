@@ -77,7 +77,7 @@ if not args.o:
 
 
 for param in ['auc','auc_bootstrap']:
-    for sa in [True, False]:
+    for sa in [0,1]:
         for seed in range(50):
             if param == 'auc_bootstrap':
                 for ic in range(48):
