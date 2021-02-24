@@ -27,7 +27,7 @@ my_str = '''
 
 # Please make a copy of this script for your own modifications
 
-#BSUB -q big-multi
+#BSUB -q rerunnable
 #BSUB -n 12
 #BSUB -M 10000
 #BSUB -R rusage[mem=10000]
@@ -78,7 +78,7 @@ if not args.o:
     sys.exit(1)
 
 
-for param in ['coef','coef_bootstrap','best_lambda']:
+for param in ['auc_bootstrap']:
     for seed in range(50):
         if param == 'auc_bootstrap':
             for ic in range(48):
