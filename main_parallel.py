@@ -28,9 +28,9 @@ if __name__ == "__main__":
     coef_names = x.columns.values
 
     if args.o:
-        path_out = args.o
+        path_out = args.o + '/'
     else:
-        path_out = 'outputs'
+        path_out = 'outputs/'
     
 
     if not os.path.isdir(path_out):

@@ -78,7 +78,7 @@ if not args.o:
     sys.exit(1)
 
 
-for param in ['auc','auc_bootstrap']:
+for param in ['coef','coef_bootstrap','best_lambda']:
     for seed in range(50):
         if param == 'auc_bootstrap':
             for ic in range(48):
