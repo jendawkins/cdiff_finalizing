@@ -16,13 +16,17 @@ if __name__ == "__main__":
     parser.add_argument("-param", "--param", help = "coef, coef_bootstrap, auc, auc_bootstrap, or best_lambda", type = str)
     parser.add_argument("-ix", "--ix", help = "index for splits", type = int)
     parser.add_argument("-o", "--o", help = "outpath", type = str)
+    parser.add_argument("-i", "--i", help = "inpath", type = str)
 
     args = parser.parse_args()
     mb = basic_ml()
-    path = 'inputs/week_one_metabs/'
-    with open(path + 'w1_x.pkl','rb') as f:
+    if not args.i:
+        path = 'inputs/week_one_metabs/'
+    else:
+        path = 'inputs/' + args.i + '/'
+    with open(path + 'x.pkl','rb') as f:
         x = pkl.load(f)
-    with open(path + 'w1_y.pkl','rb') as f:
+    with open(path + 'y.pkl','rb') as f:
         y = pkl.load(f)
 
     coef_names = x.columns.values
@@ -31,6 +35,11 @@ if __name__ == "__main__":
         path_out = args.o + '/'
     else:
         path_out = 'outputs/'
+    
+    if args.i:
+        path_out = path_out + args.i + '/'
+    else:
+        path_out = path_out + 'week_one_metabs/'
     
 
     if not os.path.isdir(path_out):
@@ -50,6 +59,8 @@ if __name__ == "__main__":
         final_res_dict[seed] = {}
 
     model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', random_state = seed, solver = 'liblinear')
+    if 'all_data' in args.i:
+        model = LogisticRegression(class_weight = None, penalty = 'l1', random_state = seed, solver = 'liblinear')
     if args.param == 'coef_bootstrap' or args.param == 'auc':
         final_res_dict[seed] = mb.nested_cv_func(model, x, y, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, learn_var = 'C')
         

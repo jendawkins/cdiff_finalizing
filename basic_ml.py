@@ -31,13 +31,13 @@ class basic_ml():
         # if dtype == 'metabolites' or dtype == 'all':
         #     assert(np.abs(np.round(np.mean(np.mean(x,0)),3))<1e-3)
         #     assert(np.round(np.mean(np.std(x,0)),3)==1.)
-        if dtype == '16s':
-            assert(np.max(np.max(x))<=1)
-            assert(np.min(np.min(x))>=0)
-        if ttype == 'week_one':
-            assert(x.shape[0]< 70)
-        elif ttype == 'all':
-            assert(x.shape[0]>70)     
+        # if dtype == '16s':
+        #     assert(np.max(np.max(x))<=1)
+        #     assert(np.min(np.min(x))>=0)
+        # if ttype == 'week_one':
+        #     assert(x.shape[0]< 70)
+        # elif ttype == 'all':
+        #     assert(x.shape[0]>70)     
         if isinstance(targets[0], str):
             targets = (np.array(targets) == 'Recur').astype('float')
         else:
