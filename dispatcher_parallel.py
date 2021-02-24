@@ -79,7 +79,7 @@ if not args.o:
 
 
 for param in ['auc']:
-    for input_path in ['week_one_metabs','week_one_16s']:
+    for input_path in ['all_data_metabs','all_data_16s']:
         for seed in range(50):
             if param == 'auc_bootstrap':
                 for ic in range(48):
