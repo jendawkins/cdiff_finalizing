@@ -75,9 +75,10 @@ args = parser.parse_args()
 out_path = args.o
 
 if not args.o:
+    print('Specify out dir')
     sys.exit(1)
 
-if not os.oath.isdir(out_path):
+if not os.path.isdir(out_path):
     os.mkdir(out_path)
 
 
