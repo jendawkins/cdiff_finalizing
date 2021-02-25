@@ -54,7 +54,7 @@ class basic_ml():
 
         tmpts_train_in = tmpts[train_index_in]
         coefs_all_in = []
-        samp_weights = get_class_weights(y, tmpts_train_in)
+        samp_weights = get_class_weights(y_train_in, tmpts_train_in)
 
         clf = self.learner(model, X_train_in, y_train_in, optim_param, var_to_learn, sample_weights = samp_weights) 
         
@@ -72,15 +72,18 @@ class basic_ml():
 
         if (y_probs[:,1] == 0).any() or ((1-y_probs[:, 1])==0).any():
             try:
-                loss = 1 if y_test_in.item() == y_probs[:,1].item() else 0
+                loss = 1. if y_test_in.item() == y_probs[:,1].item() else 0.
             except:
                 loss = np.sum(1-(y_test_in == y_probs[:, 1]).astype(int))/len(y_test_in)
         else:
             loss = (-y_test_in * np.log(y_probs[:, 1]) - (1-y_test_in)*np.log(1-y_probs[:, 1]))
-        if loss.shape[0]>1:
-            loss = (np.sum(loss)/loss.shape[0]).item()
-        else:
-            loss = loss.item()
+        
+        if not isinstance(loss, int):
+            if loss.shape[0]>1:
+                loss = (np.sum(loss)/loss.shape[0]).item()
+            else:
+                loss = loss.item()
+                
         # import pdb; pdb.set_trace()
         loss_vec_in.append(loss)
         # assert(y_guess.item() == np.round(y_probs[:,1].item()))

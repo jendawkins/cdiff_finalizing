@@ -77,9 +77,12 @@ out_path = args.o
 if not args.o:
     sys.exit(1)
 
+if not os.oath.isdir(out_path):
+    os.mkdir(out_path)
+
 
 for param in ['auc']:
-    for input_path in ['all_data_metabs','all_data_16s']:
+    for input_path in ['week_one_16s','week_one_ALL','week_one_metabs']:
         for seed in range(50):
             if param == 'auc_bootstrap':
                 for ic in range(48):
