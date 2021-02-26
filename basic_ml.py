@@ -78,12 +78,12 @@ class basic_ml():
         else:
             loss = (-y_test_in * np.log(y_probs[:, 1]) - (1-y_test_in)*np.log(1-y_probs[:, 1]))
         
-        if not isinstance(loss, int):
+        if not isinstance(loss, int) and not isinstance(loss, float):
             if loss.shape[0]>1:
                 loss = (np.sum(loss)/loss.shape[0]).item()
             else:
                 loss = loss.item()
-                
+
         # import pdb; pdb.set_trace()
         loss_vec_in.append(loss)
         # assert(y_guess.item() == np.round(y_probs[:,1].item()))
