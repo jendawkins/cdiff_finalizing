@@ -45,14 +45,16 @@ if __name__ == "__main__":
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
 
-    try:
-        with open(path_out + args.param + '.pkl','rb') as f:
-            final_res_dict = pkl.load(f)
-    except:
-        final_res_dict = {}
-        f1 = open("InitializationLogger.txt","a")
-        f1.write(args.param + ' ' + str(args.ix) + ' initialized at seed ' + str(args.seed) + '\n')
-        f1.close()
+    # try:
+    #     with open(path_out + args.param + '.pkl','rb') as f:
+    #         final_res_dict = pkl.load(f)
+    # except:
+    #     final_res_dict = {}
+    #     f1 = open("InitializationLogger.txt","a")
+    #     f1.write(args.param + ' ' + str(args.ix) + ' initialized at seed ' + str(args.seed) + '\n')
+    #     f1.close()
+
+    final_res_dict = {}
 
     seed = args.seed
     if seed not in final_res_dict.keys():
@@ -93,7 +95,10 @@ if __name__ == "__main__":
     
     end = time.time()
     passed = np.round((end - start)/60, 3)
-    f2 = open(args.param + ".txt","a")
+    if args.param == 'auc_bootstrap':
+        f2 = open(args.param + "_" + str(args.seed) + "_" + str(args.ix) + ".txt","a")
+    else:
+        f2 = open(args.param + "_" + str(args.seed) + ".txt","a")
     f2.write(str(args.seed) + ' complete at ' + str(args.ix) +  ' in ' + str(passed) + ' minutes' + '\n')
     f2.close()
         
