@@ -24,7 +24,7 @@ if __name__ == "__main__":
         path = 'inputs/week_one_metabs/'
     else:
         path = 'inputs/' + args.i + '/'
-    with open(path + 'x.pkl','rb') as f:
+    with open(path + 'x2.pkl','rb') as f:
         x = pkl.load(f)
     with open(path + 'y.pkl','rb') as f:
         y = pkl.load(f)
