@@ -90,15 +90,16 @@ if __name__ == "__main__":
         best_l = [l for l,a in auc.items() if a==m_auc]
         final_res_dict[seed] = best_l
     
-    with open(path_out + args.param+ '.pkl','wb') as f:
-        pickle.dump(final_res_dict, f)
+    if args.param == 'auc_bootstrap':
+        with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
+            pickle.dump(final_res_dict, f)
+    else:
+        with open(path_out + args.param+ "_" + str(args.seed) + '.pkl','wb') as f:
+            pickle.dump(final_res_dict, f)
     
     end = time.time()
     passed = np.round((end - start)/60, 3)
-    if args.param == 'auc_bootstrap':
-        f2 = open(args.param + "_" + str(args.seed) + "_" + str(args.ix) + ".txt","a")
-    else:
-        f2 = open(args.param + "_" + str(args.seed) + ".txt","a")
+    f2 = open(args.param + ".txt","a")
     f2.write(str(args.seed) + ' complete at ' + str(args.ix) +  ' in ' + str(passed) + ' minutes' + '\n')
     f2.close()
         
