@@ -79,7 +79,7 @@ if not os.path.isdir(out_path):
     os.mkdir(out_path)
 
 
-for param in ['auc']:
+for param in ['auc_bootstrap']:
     for input_path in ['week_one_16s','week_one_ALL','week_one_metabs']:
         for seed in range(50):
             if param == 'auc_bootstrap':
