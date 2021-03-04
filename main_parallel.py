@@ -70,9 +70,9 @@ if __name__ == "__main__":
         feature_grid = np.logspace(-3,3,100)
 
     elif args.model == 'RF':
-        model = RandomForestClassifier(class_weight = 'balanced', random_state = i)
+        model = RandomForestClassifier(class_weight = 'balanced', random_state = seed)
         if 'all_data' in args.i:
-            model = RandomForestClassifier(class_weight = None, random_state = i)
+            model = RandomForestClassifier(class_weight = None, random_state = seed)
         lv = ['n_estimators','max_depth']
         estimators_grid = np.arange(2,51,2)
         depth_grid = np.arange(2,20,1)
