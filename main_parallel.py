@@ -7,6 +7,7 @@ import numpy as np
 import argparse
 import os
 import time
+import itertools
 
 if __name__ == "__main__":
 
@@ -17,6 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("-ix", "--ix", help = "index for splits", type = int)
     parser.add_argument("-o", "--o", help = "outpath", type = str)
     parser.add_argument("-i", "--i", help = "inpath", type = str)
+    parser.add_argument("-model", "--model", help = "model (LR, RF)", type = str)
 
     args = parser.parse_args()
     mb = basic_ml()
@@ -24,7 +26,7 @@ if __name__ == "__main__":
         path = 'inputs/week_one_metabs/'
     else:
         path = 'inputs/' + args.i + '/'
-    with open(path + 'x2.pkl','rb') as f:
+    with open(path + 'x.pkl','rb') as f:
         x = pkl.load(f)
     with open(path + 'y.pkl','rb') as f:
         y = pkl.load(f)
@@ -60,14 +62,28 @@ if __name__ == "__main__":
     if seed not in final_res_dict.keys():
         final_res_dict[seed] = {}
 
-    model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', random_state = seed, solver = 'liblinear')
-    if 'all_data' in args.i:
-        model = LogisticRegression(class_weight = None, penalty = 'l1', random_state = seed, solver = 'liblinear')
+    if args.model == 'LR':
+        model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', random_state = seed, solver = 'liblinear')
+        if 'all_data' in args.i:
+            model = LogisticRegression(class_weight = None, penalty = 'l1', random_state = seed, solver = 'liblinear')
+        lv = 'C'
+        feature_grid = np.logspace(-3,3,100)
+
+    elif args.model == 'RF':
+        model = RandomForestClassifier(class_weight = 'balanced', random_state = i)
+        if 'all_data' in args.i:
+            model = RandomForestClassifier(class_weight = None, random_state = i)
+        lv = ['n_estimators','max_depth']
+        estimators_grid = np.arange(2,51,2)
+        depth_grid = np.arange(2,20,1)
+        feature_grid = list(itertools.product(estimators_grid, depth_grid))
+
     if args.param == 'coef_bootstrap' or args.param == 'auc':
-        final_res_dict[seed] = mb.nested_cv_func(model, x, y, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, learn_var = 'C')
+        final_res_dict[seed] = mb.nested_cv_func(model, x, y, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, learn_var = 'C', \
+            feature_grid = feature_grid)
         
     if args.param == 'coef':
-        final_res_dict[seed] = mb.fit_all(model, x, y, dtype = 'metabolites', optim_param = 'auc')
+        final_res_dict[seed] = mb.fit_all(model, x, y, dtype = 'metabolites', optim_param = 'auc',feature_grid = feature_grid)
 
     if args.param == 'auc_bootstrap':
         seed, X, y = mb.starter(model, x, y, 'metabolites', 'week_one')
@@ -75,7 +91,8 @@ if __name__ == "__main__":
         train_index, test_index = ixs[args.ix]
         X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
-        res_dict = mb.nested_cv_func(model, X_train, y_train, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, learn_var = 'C')
+        res_dict = mb.nested_cv_func(model, X_train, y_train, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, \
+            learn_var = 'C',feature_grid = feature_grid)
         if args.ix not in final_res_dict[seed].keys():
             final_res_dict[seed][args.ix] = res_dict
 

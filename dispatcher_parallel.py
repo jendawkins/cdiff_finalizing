@@ -64,7 +64,7 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./main_parallel.py -seed {0} -param {1} -ix {2} -o {3} -i {4}
+python3 ./main_parallel.py -seed {0} -param {1} -ix {2} -o {3} -i {4} -model {5}
 '''
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--o", help = "outpath", type = str)
@@ -78,25 +78,25 @@ if not args.o:
 if not os.path.isdir(out_path):
     os.mkdir(out_path)
 
+model = 'RF'
+param = 'auc'
+input_path = 'week_one_metabs'
 
-for param in ['auc_bootstrap']:
-    for input_path in ['week_one_16s','week_one_ALL','week_one_metabs']:
-        for seed in range(50):
-            if param == 'auc_bootstrap':
-                for ic in range(48):
-                    fname = 'cdiff_lr.lsf'
-                    f = open(fname, 'w')
-                    f.write(my_str.format(seed, param, ic, out_path, input_path))
-                    f.close()
-                    os.system('bsub < {}'.format(fname))
-                time.sleep(0.5)
-            else:
-                ic = 0
-                fname = 'cdiff_lr.lsf'
-                f = open(fname, 'w')
-                f.write(my_str.format(seed, param, ic, out_path, input_path))
-                f.close()
-                os.system('bsub < {}'.format(fname))
+for seed in range(50):
+    if param == 'auc_bootstrap':
+        for ic in range(48):
+            fname = 'cdiff_lr.lsf'
+            f = open(fname, 'w')
+            f.write(my_str.format(seed, param, ic, out_path, input_path, model))
+            f.close()
+            os.system('bsub < {}'.format(fname))
+        time.sleep(0.5)
+    else:
+        ic = 0
+        fname = 'cdiff_lr.lsf'
+        f = open(fname, 'w')
+        f.write(my_str.format(seed, param, ic, out_path, input_path))
+        f.close()
+        os.system('bsub < {}'.format(fname))
 
-    time.sleep(0.5)
 

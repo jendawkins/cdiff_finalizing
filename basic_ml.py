@@ -3,12 +3,16 @@ from ml_methods import *
 from datetime import datetime
 import sklearn
 import time
+import pickle as pkl
 
 class basic_ml():
     def __init__(self):
         pass
 
     def learner(self, model, X, y, optim_param, var_to_learn, sample_weights = None):
+        if isinstance(var_to_learn, list):
+            for i,v in enumerate(var_to_learn):
+                setattr(model, v, optim_param[i])
         if var_to_learn is not None:
             if var_to_learn == 'C':
                 setattr(model, var_to_learn, 1/optim_param)
@@ -27,17 +31,6 @@ class basic_ml():
             seed = model.random_state
         else:
             seed = 0
-        
-        # if dtype == 'metabolites' or dtype == 'all':
-        #     assert(np.abs(np.round(np.mean(np.mean(x,0)),3))<1e-3)
-        #     assert(np.round(np.mean(np.std(x,0)),3)==1.)
-        # if dtype == '16s':
-        #     assert(np.max(np.max(x))<=1)
-        #     assert(np.min(np.min(x))>=0)
-        # if ttype == 'week_one':
-        #     assert(x.shape[0]< 70)
-        # elif ttype == 'all':
-        #     assert(x.shape[0]>70)     
         if isinstance(targets[0], str):
             targets = (np.array(targets) == 'Recur').astype('float')
         else:
@@ -68,7 +61,7 @@ class basic_ml():
         else:
             ts_true_in.append(int(y_test_in.squeeze()))
             ts_pred_in.append(int(y_guess.squeeze()))
-            ts_probs_in.append(y_probs[:,1].squeeze())
+            ts_probs_in.append(float(y_probs[:,1].squeeze()))
 
         if (y_probs[:,1] == 0).any() or ((1-y_probs[:, 1])==0).any():
             try:
@@ -134,6 +127,7 @@ class basic_ml():
             model_all[ic] = clf
 
             print('split ' + str(ic) + ' complete')
+
         ret_dict = get_metrics(ts_pred, ts_true, ts_probs)
         print(ts_true)
         print(ts_pred)
@@ -146,7 +140,6 @@ class basic_ml():
         return final_res_dict
 
 
-    
     def nested_cv_func(self, model, x, targets, feature_grid = np.logspace(-3, 3, 100), \
         split_outer = leave_one_out_cv, split_inner = leave_one_out_cv, learn_var = 'C', nzero_thresh = 10, \
             name = '', dtype = 'metabolites', ttype = 'week_one', folds = None, optim_param = 'auc', plot_lambdas = False, \
@@ -171,7 +164,8 @@ class basic_ml():
             X_train, X_test = X[train_index, :], X[test_index, :]
             y_train, y_test = y[train_index], y[test_index]
 
-            ixs_inner = split_inner(X_train, y_train, folds = folds, ddtype = ttype) 
+            x_train_to_split = x.iloc[train_index,:]
+            ixs_inner = split_inner(x_train_to_split, y_train, folds = folds, ddtype = ttype) 
             lambdict = {}
             start = time.time()
             for lamb in feature_grid:
@@ -186,10 +180,11 @@ class basic_ml():
                         ix_in, X_train, y_train, tmpts, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, \
                             optim_param = lamb, var_to_learn = learn_var)
 
-                    num_coefs = sum(clf.coef_!=0)
-                    if np.mean(num_coefs)< nzero_thresh and stop_lambdas:
-                        del lambdict[lamb]
-                        continue
+                    if 'coef_' in clf.get_params().keys():
+                        num_coefs = sum(clf.coef_!=0)
+                        if np.mean(num_coefs)< nzero_thresh and stop_lambdas:
+                            del lambdict[lamb]
+                            continue
                 met_dict = get_metrics(ts_pred_in, ts_true_in, ts_probs_in)
 
                 lambdict[lamb] = met_dict
@@ -222,7 +217,8 @@ class basic_ml():
             ts_true, ts_pred, ts_probs, loss_vec, clf = self.train_func(model, ix, X, y, tmpts, \
                 ts_true, ts_pred, ts_probs, loss_vec, optim_param = best_lambda, var_to_learn = learn_var)
             
-            coefs_all[ic] = clf.coef_
+            if 'coef_' in clf.get_params().keys():
+                coefs_all[ic] = clf.coef_
             model_all[ic] = clf
 
             # print('split ' + str(ic) + ' complete')
@@ -230,6 +226,16 @@ class basic_ml():
         
             best_auc_vec.append(best_param)
             best_auc_vec_ma.append(best_param_ma)
+
+            print('Fold ' + str(ic))
+            print('Best ' + learn_var + ': ' + str(best_lambda))
+            try:
+                print(get_metrics(ts_pred, ts_true, ts_probs))
+            except:
+                print(ts_true)
+                print(ts_pred)
+                print(ts_probs)
+            print(' ')
         
         # print('Random seed ' + str(seed)+ ' Complete')
         ret_dict = get_metrics(ts_pred, ts_true, ts_probs)
@@ -238,6 +244,7 @@ class basic_ml():
         final_res_dict['metrics'] = ret_dict
         final_res_dict['coef'] = coefs_all
         final_res_dict['model'] = model_all
+        final_res_dict['lambdict'] = lambdict
         return final_res_dict
 
     def double_nest(self, model, x, targets, feature_grid = np.logspace(-3, 3, 100), \
@@ -275,3 +282,20 @@ class basic_ml():
         final_res_dict['coef'] = coef_vec
         final_res_dict['model'] = model_vec
         return final_res_dict
+
+if __name__ == "__main__":
+    mb = basic_ml()
+    paths = ['week_one_ALL/', 'week_one_16s/','week_one_metabs/']
+    in_file = 'x.pkl'
+    dat_dict = {}
+    for path in paths:
+        with open('inputs/' + path + in_file,'rb') as f:
+            x = pkl.load(f)
+        with open('inputs/' + path + 'y.pkl','rb') as f:
+            y = pkl.load(f)
+        dat_dict[path[:-1]] = (x,y)
+
+    x, y = dat_dict['week_one_ALL']
+    model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', \
+                               random_state = 0, solver = 'liblinear')
+    out_dict = mb.nested_cv_func(model, x, y, dtype = 'metabolites', optim_param = 'auc')
