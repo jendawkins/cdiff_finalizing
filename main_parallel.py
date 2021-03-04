@@ -37,12 +37,14 @@ if __name__ == "__main__":
         path_out = args.o + '/'
     else:
         path_out = 'outputs/'
+
+    if not os.path.isdir(path_out):
+        os.mkdir(path_out)
     
     if args.i:
         path_out = path_out + args.i + '/'
     else:
         path_out = path_out + 'week_one_metabs/'
-    
 
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
