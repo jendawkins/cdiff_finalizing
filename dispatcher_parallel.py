@@ -95,7 +95,7 @@ for seed in range(50):
         ic = 0
         fname = 'cdiff_lr.lsf'
         f = open(fname, 'w')
-        f.write(my_str.format(seed, param, ic, out_path, input_path))
+        f.write(my_str.format(seed, param, ic, out_path, input_path, model))
         f.close()
         os.system('bsub < {}'.format(fname))
 
