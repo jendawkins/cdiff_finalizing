@@ -13,7 +13,7 @@ class basic_ml():
         if isinstance(var_to_learn, list):
             for i,v in enumerate(var_to_learn):
                 setattr(model, v, optim_param[i])
-        if var_to_learn is not None:
+        elif var_to_learn is not None:
             if var_to_learn == 'C':
                 setattr(model, var_to_learn, 1/optim_param)
             else:
