@@ -81,11 +81,9 @@ if __name__ == "__main__":
         feature_grid = list(itertools.product(estimators_grid, depth_grid))
 
     if args.param == 'coef_bootstrap' or args.param == 'auc':
-        final_res_dict[seed] = mb.nested_cv_func(model, x, y, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, learn_var = 'C', \
+        final_res_dict[seed] = mb.nested_cv_func(model, x, y, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, learn_var = lv, \
             feature_grid = feature_grid)
         
-    if args.param == 'coef':
-        final_res_dict[seed] = mb.fit_all(model, x, y, dtype = 'metabolites', optim_param = 'auc',feature_grid = feature_grid)
 
     if args.param == 'auc_bootstrap':
         seed, X, y = mb.starter(model, x, y, 'metabolites', 'week_one')
@@ -94,20 +92,23 @@ if __name__ == "__main__":
         X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
         res_dict = mb.nested_cv_func(model, X_train, y_train, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, \
-            learn_var = 'C',feature_grid = feature_grid)
+            learn_var = lv,feature_grid = feature_grid)
         if args.ix not in final_res_dict[seed].keys():
             final_res_dict[seed][args.ix] = res_dict
 
     if args.param == 'best_lambda':
         auc = {}
-        for l in np.logspace(-3,3,200):
-            model = LogisticRegression(C = 1/l, class_weight = 'balanced', penalty = 'l1', \
-                                random_state = 0, solver = 'liblinear')
-            final_res_dict_c2 = mb.one_cv_func(model, x, y,dtype =None)
+        for l in feature_grid:
+            final_res_dict_c2 = mb.one_cv_func(model, x, y,dtype =None, var_to_learn= lv, test_param = l)
             auc[l] = final_res_dict_c2['metrics']['auc']
         m_auc = np.max(list(auc.values()))
         best_l = [l for l,a in auc.items() if a==m_auc]
         final_res_dict[seed] = best_l
+
+    if args.param == 'coef':
+        # with open(path_out + "best_lambda_" + str(args.seed) + '.pkl','rb') as f:
+        #     pickle.dump(final_res_dict, f)
+        final_res_dict[seed] = mb.fit_all(model, x, y, dtype = 'metabolites', optim_param = 'auc')
     
     if args.param == 'auc_bootstrap':
         with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:

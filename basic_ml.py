@@ -9,15 +9,15 @@ class basic_ml():
     def __init__(self):
         pass
 
-    def learner(self, model, X, y, optim_param, var_to_learn, sample_weights = None):
+    def learner(self, model, X, y, test_param, var_to_learn, sample_weights = None):
         if isinstance(var_to_learn, list):
             for i,v in enumerate(var_to_learn):
-                setattr(model, v, optim_param[i])
+                setattr(model, v, test_param[i])
         elif var_to_learn is not None:
             if var_to_learn == 'C':
-                setattr(model, var_to_learn, 1/optim_param)
+                setattr(model, var_to_learn, 1/test_param)
             else:
-                setattr(model, var_to_learn, optim_param)
+                setattr(model, var_to_learn, test_param)
         params = model.get_params()
         if 'class_weight' in params and params['class_weight'] == None:
             clf = model.fit(X, y, sample_weight = sample_weights)
@@ -40,7 +40,7 @@ class basic_ml():
         return seed, X, y
 
 
-    def train_func(self, model, ix_in, X, y, tmpts, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, optim_param = None, var_to_learn = None):
+    def train_func(self, model, ix_in, X, y, tmpts, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, test_param = None, var_to_learn = None):
         train_index_in, test_index_in = ix_in
         X_train_in, X_test_in = X[train_index_in, :], X[test_index_in, :]
         y_train_in, y_test_in = y[train_index_in], y[test_index_in]
@@ -49,7 +49,7 @@ class basic_ml():
         coefs_all_in = []
         samp_weights = get_class_weights(y_train_in, tmpts_train_in)
 
-        clf = self.learner(model, X_train_in, y_train_in, optim_param, var_to_learn, sample_weights = samp_weights) 
+        clf = self.learner(model, X_train_in, y_train_in, test_param, var_to_learn, sample_weights = samp_weights) 
         
         y_guess = clf.predict(X_test_in)
         y_probs = clf.predict_proba(X_test_in)
@@ -83,7 +83,8 @@ class basic_ml():
 
         return ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, clf
 
-    def fit_all(self, model, x, targets, name='', dtype = 'metabolites', ttype = 'week_one', optim_param = 'auc', var_to_learn = 'C', optimal_param = 7.753):
+    def fit_all(self, model, x, targets, name='', dtype = 'metabolites', ttype = 'week_one', \
+        optim_param = 'auc', var_to_learn = 'C', optimal_param = 7.753):
         seed, X, y = self.starter(model, x, targets, dtype, ttype)
         final_res_dict = {}
         tmpts = np.array([ix.split('-')[1] for ix in x.index.values])
@@ -99,7 +100,8 @@ class basic_ml():
 
 
 
-    def one_cv_func(self, model, x, targets, split_outer = leave_one_out_cv, name = '', dtype = 'metabolites', ttype = 'week_one', folds = None, optim_param = 'auc', final_res_dict = {}):
+    def one_cv_func(self, model, x, targets, split_outer = leave_one_out_cv, name = '', dtype = 'metabolites', ttype = 'week_one', \
+        folds = None, optim_param = 'auc', final_res_dict = {}, var_to_learn = 'C', test_param = 1):
         seed, X, y= self.starter(model, x, targets, dtype, ttype)
 
         final_res_dict = {}
@@ -118,7 +120,7 @@ class basic_ml():
             y_train, y_test = y[train_index], y[test_index]            
             
             ts_true, ts_pred, ts_probs, loss_vec, clf = self.train_func(model, ix, X, y, tmpts, \
-                ts_true, ts_pred, ts_probs, loss_vec)
+                ts_true, ts_pred, ts_probs, loss_vec, var_to_learn = var_to_learn, test_param = test_param)
             
             try:
                 coefs_all[ic] = clf.coef_
@@ -178,7 +180,7 @@ class basic_ml():
                 for ix_in in ixs_inner:
                     ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, clf = self.train_func(model, \
                         ix_in, X_train, y_train, tmpts, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, \
-                            optim_param = lamb, var_to_learn = learn_var)
+                            test_param = lamb, var_to_learn = learn_var)
 
                     if 'coef_' in clf.get_params().keys():
                         num_coefs = sum(clf.coef_!=0)
