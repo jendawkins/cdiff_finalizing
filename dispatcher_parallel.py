@@ -5,6 +5,7 @@ import argparse
 import pickle
 import time
 import sys
+import itertools
 
 my_str = '''
 #!/bin/bash
