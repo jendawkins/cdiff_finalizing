@@ -211,7 +211,7 @@ class basic_ml():
                     max_ix = np.argmax(ma) + offset
                 else:
                     max_ix = np.argmax(vec)
-            best_lambda = np.min(np.array(lambdas)[max_ix])
+            best_lambda = lambdas[max_ix]
 
             if plot_lambdas:
                 fig2, ax2 = plot_lambdas_func(lambdict, optim_param, offset, ma, best_lambda)
@@ -228,16 +228,20 @@ class basic_ml():
         
             best_auc_vec.append(best_param)
             best_auc_vec_ma.append(best_param_ma)
+        #     print(best_lambdas)
 
-            print('Fold ' + str(ic))
-            print('Best ' + learn_var + ': ' + str(best_lambda))
-            try:
-                print(get_metrics(ts_pred, ts_true, ts_probs))
-            except:
-                print(ts_true)
-                print(ts_pred)
-                print(ts_probs)
-            print(' ')
+        #     print('Fold ' + str(ic))
+        #     if isinstance(best_lambda, list):
+        #         print('Best ' + learn_var + ': ' + str(best_lambda[0]))
+        #     else:
+        #         print('Best ' + learn_var + ': ' + str(best_lambda))
+        # try:
+        #     print(get_metrics(ts_pred, ts_true, ts_probs))
+        # except:
+        #     print(ts_true)
+        #     print(ts_pred)
+        #     print(ts_probs)
+        # print(' ')
         
         # print('Random seed ' + str(seed)+ ' Complete')
         ret_dict = get_metrics(ts_pred, ts_true, ts_probs)
