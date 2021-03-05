@@ -131,9 +131,9 @@ class basic_ml():
             print('split ' + str(ic) + ' complete')
 
         ret_dict = get_metrics(ts_pred, ts_true, ts_probs)
-        print(ts_true)
-        print(ts_pred)
-        print(ts_probs)
+        # print(ts_true)
+        # print(ts_pred)
+        # print(ts_probs)
 
         final_res_dict['metrics'] = ret_dict
         if len(coefs_all) >0:
