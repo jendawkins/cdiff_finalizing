@@ -217,7 +217,7 @@ class basic_ml():
                 fig2, ax2 = plot_lambdas_func(lambdict, optim_param, offset, ma, best_lambda)
 
             ts_true, ts_pred, ts_probs, loss_vec, clf = self.train_func(model, ix, X, y, tmpts, \
-                ts_true, ts_pred, ts_probs, loss_vec, optim_param = best_lambda, var_to_learn = learn_var)
+                ts_true, ts_pred, ts_probs, loss_vec, test_param = best_lambda, var_to_learn = learn_var)
             
             if 'coef_' in clf.get_params().keys():
                 coefs_all[ic] = clf.coef_
