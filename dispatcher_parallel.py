@@ -98,7 +98,7 @@ for feat in feature_grid:
         for seed in range(50):
             fname = 'cdiff_lr.lsf'
             f = open(fname, 'w')
-            f.write(my_str.format(seed, param, ic, out_path, input_path, model, feat[0] feat[1]))
+            f.write(my_str.format(seed, param, ic, out_path, input_path, model, feat[0], feat[1]))
             f.close()
             os.system('bsub < {}'.format(fname))
     time.sleep(0.5)
