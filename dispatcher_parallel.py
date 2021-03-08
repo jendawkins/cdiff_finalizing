@@ -65,7 +65,7 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./main_parallel.py -seed {0} -param {1} -o {3} -i {4} -model {5} 
+python3 ./main_parallel.py -seed {0} -param {1} -ix {2} -o {3} -i {4} -model {5} 
 '''
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--o", help = "outpath", type = str)
@@ -86,7 +86,7 @@ for input_path in ['week_one_bileacids','week_one_bileacids_metabs']:
     for seed in range(50):
         fname = 'cdiff_lr.lsf'
         f = open(fname, 'w')
-        f.write(my_str.format(seed, param, out_path, input_path, model))
+        f.write(my_str.format(seed, param, 0, out_path, input_path, model))
         f.close()
         os.system('bsub < {}'.format(fname))
     time.sleep(0.5)
