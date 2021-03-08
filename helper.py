@@ -7,20 +7,51 @@ import sklearn
 import copy
 from sklearn.model_selection import StratifiedKFold
 
-# def get_results_from_dict(final_res_dict, param):
+def standardize(x,override = False):
+    if not override:
+        assert(x.shape[0]<x.shape[1])
+
+    dem = np.std(x,0)
+    if (dem == 0).any():
+        dem = np.where(np.std(x, 0) == 0, 1, np.std(x, 0))
+    return (x - np.mean(x, 0))/dem
+
+def get_percentiles(vals, interval = 90, digits = 4, coef = False):
+    col = np.array(vals)
+    ix_sort = np.argsort(-np.abs(vals))
+    sort = col[ix_sort]
+    perc = (100-interval)/(2*100)
+    ix_upper = np.int(np.floor(len(sort)*perc))
+    ix_lower = np.int(np.ceil(len(sort)*(1-perc)))
+    if ix_upper >= len(vals):
+        ix_upper = ix_upper - 1
+    if ix_lower <= len(vals):
+        ix_lower = ix_lower - 1
+    if coef:
+        return (np.round(np.exp(sort[ix_lower]),digits), np.round(np.exp(sort[ix_upper]),digits))
+    else:
+        return (np.round((sort[ix_lower]),digits), np.round((sort[ix_upper]),digits))
 
 
 def get_mad(vals, axis = 0):
     return np.median(np.abs(vals - np.mean(vals, axis)), axis)
 
-def get_median_ci(median, mad, param):
+def get_mad_interval(median, mad, param, digits = 4):
     if param == 'coef':
         upper = np.round(np.exp(median + mad),4)
         lower = np.round(np.exp(median - mad),4)
     else:
         upper = np.round(median + mad,4)
         lower  = np.round(median - mad,4)
-    return upper, lower
+    return np.round(upper, digits), np.round(lower, digits)
+
+def get_ci(val,z=1.96):
+    mean = np.mean(val)
+    std = np.std(val)
+    l = len(val)
+    CI_top = np.round(mean + z*(std)/np.sqrt(l),4)
+    CI_bot = np.round(mean - z*(std)/np.sqrt(l),4)
+    return (CI_bot, CI_top)
 
 def custom_dist(pt1, pt2, metric):
     if metric == 'e':
@@ -41,7 +72,7 @@ def get_metrics(pred, true, probs):
     bac = (tprr + tnrr)/2
     auc_score = sklearn.metrics.roc_auc_score(ts_true_in, ts_probs_in)
     f1 = sklearn.metrics.f1_score(ts_true_in, ts_pred_in)
-    ret_dict = {'tpr':tprr,'tnr':tnrr,'bac':bac,'auc':auc_score,'f1':f1}
+    ret_dict = {'pred':pred,'true':true,'tpr':tprr,'tnr':tnrr,'bac':bac,'auc':auc_score,'f1':f1,'probs':probs,}
     return ret_dict
 
 def get_class_weights(y, tmpts):
@@ -159,6 +190,23 @@ def dmatrix(data, metric='e'):
             vec[k] = custom_dist(data_s[:, i], data_s[:, j], metric)
     return vec
 
+def get_percentiles(vals, interval = 90, digits = 4, coef = False):
+    col = np.array(vals)
+    ix_sort = np.argsort(-np.abs(vals))
+    sort = col[ix_sort]
+    perc = (100-interval)/(2*100)
+    ix_upper = np.int(np.floor(len(sort)*perc))
+    ix_lower = np.int(np.ceil(len(sort)*(1-perc)))
+    if ix_upper >= len(vals):
+        ix_upper = ix_upper - 1
+    if ix_lower <= len(vals):
+        ix_lower = ix_lower - 1
+    if coef:
+        CI = (np.round(np.exp(sort[ix_lower]),digits), np.round(np.exp(sort[ix_upper]),digits))
+    else:
+        CI = (np.round((sort[ix_lower]),digits), np.round((sort[ix_upper]),digits))
+    return CI
+
 
 # def leave_one_out_cv(data, labels, num_folds=None):
 
@@ -196,7 +244,7 @@ def dmatrix(data, metric='e'):
 def isclose(a, b, tol=1e-03):
     return (abs(a-b) <= tol).all()
 
-def asv_to_name(asv, tax_dat = ['dada2-taxonomy-rdp.csv','dada2-taxonomy-silva.csv']):
+def asv_to_name(asv, tax_dat = ['inputs/dada2-taxonomy-rdp.csv','inputs/dada2-taxonomy-silva.csv']):
     tdat = [pd.read_csv(t) for t in tax_dat]
     met_class = []
 
@@ -216,7 +264,7 @@ def asv_to_name(asv, tax_dat = ['dada2-taxonomy-rdp.csv','dada2-taxonomy-silva.c
             met_class = cl[0]
     return met_class
 
-def return_taxa_names(sequences, tax_dat = ['dada2-taxonomy-rdp.csv','dada2-taxonomy-silva.csv']):
+def return_taxa_names(sequences, tax_dat = ['inputs/dada2-taxonomy-rdp.csv','inputs/dada2-taxonomy-silva.csv']):
     tdat = [pd.read_csv(t) for t in tax_dat]
     met_class = []
     for metab in sequences:
@@ -239,7 +287,7 @@ def return_taxa_names(sequences, tax_dat = ['dada2-taxonomy-rdp.csv','dada2-taxo
     return met_class 
 
 
-def return_sig_biomarkers(dset_name,data = None, tax_dat = ['dada2-taxonomy-rdp.csv','dada2-taxonomy-silva.csv'], thresh = 10):
+def return_sig_biomarkers(dset_name,data = None, tax_dat = ['inputs/dada2-taxonomy-rdp.csv','inputs/dada2-taxonomy-silva.csv'], thresh = 10):
     df_new = pd.read_csv(dset_name) 
   
     # saving xlsx file 
@@ -510,8 +558,16 @@ def leave_one_out_cv(data, labels, folds = None, ddtype = 'week_one'):
             ix_all.append((ixtrain, ixtest))
     
     if folds is not None:
-        random_select = np.random.choice(range(len(ix_all)), folds)
-        ix_all = list(np.array(ix_all)[random_select])
+        if isinstance(labels[0], str):
+            cl = np.where(labels == 'Cleared')[0]
+            re = np.where(labels == 'Recur')[0]
+        else:
+            cl = np.where(labels == 0)[0]
+            re = np.where(labels == 1)[0]
+        random_select_cl = np.random.choice(cl, int(folds/2))
+        random_select_re = np.random.choice(re, int(folds/2))
+        random_select = np.append(random_select_cl, random_select_re)
+        ix_all = (np.array(ix_all)[random_select]).tolist()
     return ix_all
 
 
@@ -522,7 +578,7 @@ def split_to_folds(in_data, in_labels, folds=5, ddtype = 'week_one'):
     in_labels = np.array(in_labels)
     # if ddtype == 'all_data':
     data_perc_take = 1/folds
-    patients = np.array([int(ti.split('-')[1])
+    patients = np.array([int(ti.split('-')[0])
                         for ti in in_data.index.values])
     unique_patients = np.unique(patients)
     pts_to_take = np.copy(unique_patients)
@@ -560,6 +616,50 @@ def split_to_folds(in_data, in_labels, folds=5, ddtype = 'week_one'):
     #     zip_ixs = skf.split(in_data, in_labels)
     return zip_ixs
 
+def get_resdict_from_file(path):
+    # path = 'out_test/'
+    res_dict = {}
+    for file in os.listdir(path):
+        if file == '.DS_Store':
+            continue
+        key_name = file.split('.')[0].split('_')[0]
+        seed = int(file.split('.')[0].split('_')[1])
+        ix = int(file.split('.')[0].split('_')[2])
+        with open(inner_path + file, 'rb') as f:
+            # temp is a dictionary with parameter keys 
+            temp = pkl.load(f)
+            if key_name not in res_dict.keys():
+                res_dict[key_name] = {}
+            if ix not in res_dict[key_name].keys():
+                res_dict[key_name][ix] = {}         
+            for test_param in temp[ix].keys():
+                if test_param not in res_dict[key_name][ix].keys():
+                    res_dict[key_name][ix][test_param] = {}
+                # res dict keys go model, held out test index, parameter to test, seed
+                res_dict[key_name][ix][test_param][seed] = temp[ix][test_param]
+    return res_dict
+
+def get_best_param(res_dict, key_name):
+    best_param = {}
+    for ix in res_dict[key_name].keys():
+        all_aucs = {}
+        auc = {}
+        params = list(res_dict[key_name][ix].keys())
+        for param in params:
+            if param not in auc.keys():
+                auc[param] = []
+            for seed in res_dict[key_name][ix][param].keys():
+                auc[param].append(res_dict[key_name][ix][param][seed]['metrics']['auc'])
+        
+            all_aucs[param] = np.median(auc[param])
+                
+        vec = np.array([all_aucs[p] for p in params])
+        ma = moving_average(vec, n=5)
+        offset = int(np.floor(5./2))
+        max_ix = np.argmax(ma) + offset
+        
+        best_param[ix] = params[max_ix]
+    return best_param
 
 # # def make_summary_fig():
 #     import matplotlib as mpl

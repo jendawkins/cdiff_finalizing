@@ -95,7 +95,8 @@ class basic_ml():
         ret_dict = get_metrics(y_guess, y, y_probs)
         final_res_dict['metrics'] = ret_dict
         final_res_dict['model'] = clf
-        final_res_dict['coef'] = clf.coef_
+        if 'coef_' in clf.get_params().keys():
+            final_res_dict['coef'] = clf.coef_
         return final_res_dict
 
 

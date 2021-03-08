@@ -20,6 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--i", help = "inpath", type = str)
     parser.add_argument("-model", "--model", help = "model (LR, RF)", type = str)
     parser.add_argument("-test_feat", "--test_feat", help = "feature to test", type = float, nargs = '+')
+    parser.add_argument("-final", "--final", help = "final testing based on saved parameters or not", type = bool)
 
     args = parser.parse_args()
     mb = basic_ml()
@@ -50,15 +51,6 @@ if __name__ == "__main__":
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
 
-    # try:
-    #     with open(path_out + args.param + '.pkl','rb') as f:
-    #         final_res_dict = pkl.load(f)
-    # except:
-    #     final_res_dict = {}
-    #     f1 = open("InitializationLogger.txt","a")
-    #     f1.write(args.param + ' ' + str(args.ix) + ' initialized at seed ' + str(args.seed) + '\n')
-    #     f1.close()
-
     seed = args.seed
     final_res_dict = {}
     if args.ix not in final_res_dict.keys():
@@ -88,9 +80,18 @@ if __name__ == "__main__":
         train_index, test_index = ixs[args.ix]
         X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
-        final_res_dict[args.ix][ft] = mb.one_cv_func(model, X_train, y_train,dtype =None, var_to_learn= lv, test_param = ft)
-        
+        final_res_dict[ft] = mb.one_cv_func(model, X_train, y_train,dtype =None, \
+            var_to_learn= lv, test_param = ft)
 
+        if args.final == True:
+            res_dict = get_resdict_from_file(path_out)
+            best_param_dict = get_best_param(res_dict, args.param)
+
+            train_inde, test_index = ixs[args.ix]
+            best_param = best_param_dict[args.ix]
+            final_res_dict = mb.fit_all(model, x, y, var_to_learn = lv, test_param = best_param)
+            path_out = path_out + 'final/'
+            
     if args.param == 'auc_bootstrap':
         seed, X, y = mb.starter(model, x, y, 'metabolites', 'week_one')
         ixs = leave_one_out_cv(x,y)
@@ -109,7 +110,7 @@ if __name__ == "__main__":
             auc[l] = final_res_dict_c2['metrics']['auc']
         m_auc = np.max(list(auc.values()))
         best_l = [l for l,a in auc.items() if a==m_auc]
-        final_res_dict[seed] = best_l
+        final_res_dict = best_l
 
     if args.param == 'coef':
         param_vec = []
@@ -124,7 +125,7 @@ if __name__ == "__main__":
             best_param = tuple(out)
         else:
             best_param = np.median(param_vec)
-        final_res_dict[seed] = mb.fit_all(model, x, y, dtype = 'metabolites', optim_param = 'auc', var_to_learn = lv, optimal_param = best_param)
+        final_res_dict = mb.fit_all(model, x, y, dtype = 'metabolites', optim_param = 'auc', var_to_learn = lv, optimal_param = best_param)
     
     with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
         pickle.dump(final_res_dict, f)

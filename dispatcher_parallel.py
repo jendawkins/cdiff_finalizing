@@ -65,7 +65,7 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./main_parallel_2.py -seed {0} -param {1} -ix {2} -o {3} -i {4} -model {5} -test_feat {6} {7}
+python3 ./main_parallel_2.py -seed {0} -param {1} -ix {2} -o {3} -i {4} -model {5} -test_feat {6} {7} -final {8}
 '''
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--o", help = "outpath", type = str)
@@ -99,10 +99,15 @@ for feat in feature_grid:
         for seed in range(50):
             fname = 'cdiff_lr.lsf'
             f = open(fname, 'w')
-            f.write(my_str.format(seed, param, ic, out_path, input_path, model, feat[0], feat[1]))
+            f.write(my_str.format(seed, param, ic, out_path, input_path, model, feat[0], feat[1],False))
             f.close()
             os.system('bsub < {}'.format(fname))
     time.sleep(0.5)
+
+time.sleep(5)
+for seed in range(50):
+    for ic in range(48):
+        f.write(my_str.format(seed,param,ic,out_path,input_path,model,0,0,True))
     # else:
     #     ic = 0
     #     fname = 'cdiff_lr.lsf'
