@@ -48,11 +48,23 @@ if __name__ == "__main__":
     else:
         path_out = path_out + 'week_one_metabs/'
 
+    if args.final == True:
+        path_out = path_out + 'final/'
+
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
 
     seed = args.seed
-    final_res_dict = {}
+
+    try:
+        with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','rb') as f:
+            final_res_dict = pkl.load(f)
+    except:
+        final_res_dict = {}
+        f1 = open(path_out + "InitializationLogger.txt","a")
+        f1.write(args.param + ' ' + str(args.ix) + ' initialized at seed ' + str(args.seed) + '\n')
+        f1.close()
+    
     if args.ix not in final_res_dict.keys():
         final_res_dict[args.ix] = {}
 
@@ -90,7 +102,6 @@ if __name__ == "__main__":
             train_inde, test_index = ixs[args.ix]
             best_param = best_param_dict[args.ix]
             final_res_dict = mb.fit_all(model, x, y, var_to_learn = lv, test_param = best_param)
-            path_out = path_out + 'final/'
             
     if args.param == 'auc_bootstrap':
         seed, X, y = mb.starter(model, x, y, 'metabolites', 'week_one')
@@ -130,11 +141,11 @@ if __name__ == "__main__":
     with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
         pickle.dump(final_res_dict, f)
 
-    end = time.time()
-    passed = np.round((end - start)/60, 3)
-    f2 = open(args.param + ".txt","a")
-    f2.write(str(args.seed) + ' complete at ' + str(args.ix) +  ' in ' + str(passed) + ' minutes' + '\n')
-    f2.close()
+    # end = time.time()
+    # passed = np.round((end - start)/60, 3)
+    # f2 = open(path_out + args.param + ".txt","a")
+    # f2.write(str(args.seed) + ' complete at ' + str(args.ix) +  ' in ' + str(passed) + ' minutes' + '\n')
+    # f2.close()
         
     
 
