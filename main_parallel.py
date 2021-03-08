@@ -49,15 +49,6 @@ if __name__ == "__main__":
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
 
-    # try:
-    #     with open(path_out + args.param + '.pkl','rb') as f:
-    #         final_res_dict = pkl.load(f)
-    # except:
-    #     final_res_dict = {}
-    #     f1 = open("InitializationLogger.txt","a")
-    #     f1.write(args.param + ' ' + str(args.ix) + ' initialized at seed ' + str(args.seed) + '\n')
-    #     f1.close()
-
     final_res_dict = {}
 
     seed = args.seed
@@ -106,9 +97,19 @@ if __name__ == "__main__":
         final_res_dict[seed] = best_l
 
     if args.param == 'coef':
-        # with open(path_out + "best_lambda_" + str(args.seed) + '.pkl','rb') as f:
-        #     pickle.dump(final_res_dict, f)
-        final_res_dict[seed] = mb.fit_all(model, x, y, dtype = 'metabolites', optim_param = 'auc')
+        param_vec = []
+        for file in os.listdir(path_out):
+            if 'best_lambda' in file:
+                with open(path_out + file,'rb') as f:
+                    frd = pickle.load(f)
+            param_vec.append(list(frd.values())[0][0])
+        
+        if args.model == 'RF':
+            out = [np.median(list(x)) for x in list(zip(*param_vec))]
+            best_param = tuple(out)
+        else:
+            best_param = np.median(param_vec)
+        final_res_dict[seed] = mb.fit_all(model, x, y, dtype = 'metabolites', optim_param = 'auc', var_to_learn = lv, optimal_param = best_param)
     
     if args.param == 'auc_bootstrap':
         with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
