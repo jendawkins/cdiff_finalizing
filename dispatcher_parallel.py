@@ -82,7 +82,7 @@ if not os.path.isdir(out_path):
 model = 'LR'
 param = 'auc'
 
-for input_path in ['week_one_bileacids','week_one_bileacids_metabs']:
+for input_path in ['week_one_bileacids_metabs']:
     for seed in range(50):
         fname = 'cdiff_lr.lsf'
         f = open(fname, 'w')
