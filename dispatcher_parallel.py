@@ -86,7 +86,7 @@ for input_path in ['week_one_bileacids','week_one_bileacids_metabs']:
     for seed in range(50):
         fname = 'cdiff_lr.lsf'
         f = open(fname, 'w')
-        f.write(my_str.format(seed, param, ic, out_path, input_path, model))
+        f.write(my_str.format(seed, param, out_path, input_path, model))
         f.close()
         os.system('bsub < {}'.format(fname))
     time.sleep(0.5)
