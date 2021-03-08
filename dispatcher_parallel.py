@@ -65,7 +65,7 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./main_parallel.py -seed {0} -param {1} -ix {2} -o {3} -i {4} -model {5} 
+python3 ./main_parallel.py -seed {0} -param {1} -o {3} -i {4} -model {5} 
 '''
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--o", help = "outpath", type = str)
