@@ -79,10 +79,10 @@ if not args.o:
 if not os.path.isdir(out_path):
     os.mkdir(out_path)
 
-model = 'LR'
+model = 'RF'
 param = 'auc'
 
-for input_path in ['week_one_bileacids', 'week_one_bileacids_metabs']:
+for input_path in ['week_one_metabs', 'week_one_16s']:
     for seed in range(50):
         fname = 'cdiff_lr.lsf'
         f = open(fname, 'w')
