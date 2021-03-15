@@ -51,6 +51,7 @@ class basic_ml():
 
         clf = self.learner(model, X_train_in, y_train_in, test_param, var_to_learn, sample_weights = samp_weights) 
         
+        y_probs_train = clf.predict_proba(X_train_in)
         y_guess = clf.predict(X_test_in)
         y_probs = clf.predict_proba(X_test_in)
 
@@ -81,7 +82,7 @@ class basic_ml():
         loss_vec_in.append(loss)
         # assert(y_guess.item() == np.round(y_probs[:,1].item()))
 
-        return ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, clf
+        return ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, clf, y_probs_train
 
     def fit_all(self, model, x, targets, name='', dtype = 'metabolites', ttype = 'week_one', \
         optim_param = 'auc', var_to_learn = 'C', optimal_param = 7.753):
@@ -115,12 +116,9 @@ class basic_ml():
         ts_probs = []
         coefs_all = {}
         model_all = {}
-        for ic, ix in enumerate(ixs):
-            train_index, test_index = ix
-            X_train, X_test = X[train_index, :], X[test_index, :]
-            y_train, y_test = y[train_index], y[test_index]            
+        for ic, ix in enumerate(ixs):         
             
-            ts_true, ts_pred, ts_probs, loss_vec, clf = self.train_func(model, ix, X, y, tmpts, \
+            ts_true, ts_pred, ts_probs, loss_vec, clf, y_probs_tr = self.train_func(model, ix, X, y, tmpts, \
                 ts_true, ts_pred, ts_probs, loss_vec, var_to_learn = var_to_learn, test_param = test_param)
             
             try:
@@ -162,6 +160,9 @@ class basic_ml():
         best_lambdas = []
         best_auc_vec = []
         best_auc_vec_ma = []
+        training_probs = []
+        train_auc_outer = []
+        auc_score_tr = []
         for ic, ix in enumerate(ixs):
             train_index, test_index = ix
             X_train, X_test = X[train_index, :], X[test_index, :]
@@ -171,6 +172,7 @@ class basic_ml():
             ixs_inner = split_inner(x_train_to_split, y_train, folds = folds, ddtype = ttype) 
             lambdict = {}
             start = time.time()
+            train_auc_dict = {}
             for lamb in feature_grid:
                 lambdict[lamb] = {}
 
@@ -178,8 +180,9 @@ class basic_ml():
                 ts_pred_in = []
                 loss_vec_in = []
                 ts_probs_in = []
+                train_auc = []
                 for ix_in in ixs_inner:
-                    ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, clf = self.train_func(model, \
+                    ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, clf, y_probs_tr = self.train_func(model, \
                         ix_in, X_train, y_train, tmpts, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, \
                             test_param = lamb, var_to_learn = learn_var)
 
@@ -188,6 +191,10 @@ class basic_ml():
                         if np.mean(num_coefs)< nzero_thresh and stop_lambdas:
                             del lambdict[lamb]
                             continue
+                    train_auc.append(sklearn.metrics.roc_auc_score(y_train[ix_in[0]], y_probs_tr[:,1]))
+                train_auc_dict[lamb] = train_auc
+                # print('AUC for lambda ' + str(lamb) + '= ' + str(train_auc))
+
                 met_dict = get_metrics(ts_pred_in, ts_true_in, ts_probs_in)
 
                 lambdict[lamb] = met_dict
@@ -217,7 +224,7 @@ class basic_ml():
             if plot_lambdas:
                 fig2, ax2 = plot_lambdas_func(lambdict, optim_param, offset, ma, best_lambda)
 
-            ts_true, ts_pred, ts_probs, loss_vec, clf = self.train_func(model, ix, X, y, tmpts, \
+            ts_true, ts_pred, ts_probs, loss_vec, clf, y_probs_tr = self.train_func(model, ix, X, y, tmpts, \
                 ts_true, ts_pred, ts_probs, loss_vec, test_param = best_lambda, var_to_learn = learn_var)
             
             if 'coef_' in clf.get_params().keys():
@@ -229,6 +236,10 @@ class basic_ml():
         
             best_auc_vec.append(best_param)
             best_auc_vec_ma.append(best_param_ma)
+
+            training_probs.append((y[ix[0]], y_probs_tr))
+
+            auc_score_tr.append(sklearn.metrics.roc_auc_score(y_train, y_probs_tr[:,1]))
         #     print(best_lambdas)
 
         #     print('Fold ' + str(ic))
@@ -252,6 +263,9 @@ class basic_ml():
         final_res_dict['coef'] = coefs_all
         final_res_dict['model'] = model_all
         final_res_dict['lambdict'] = lambdict
+        final_res_dict['train_fit'] = training_probs
+        final_res_dict['train_auc'] = auc_score_tr
+        final_res_dict['train_auc_inner'] = train_auc_dict
         return final_res_dict
 
     def double_nest(self, model, x, targets, feature_grid = np.logspace(-3, 3, 100), \
