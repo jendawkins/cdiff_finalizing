@@ -15,8 +15,4 @@ if __name__ == "__main__":
     with open('temp/kegg/' + args.info + '.pkl', 'wb') as f:
         pkl.dump(doc, f)
 
-    import pdb; pdb.set_trace()
-    # except urllib.error.HTTPError as e:
-    #     print('error')
-    #     pass
         
