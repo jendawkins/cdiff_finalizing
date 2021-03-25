@@ -163,6 +163,7 @@ class basic_ml():
         training_probs = []
         train_auc_outer = []
         auc_score_tr = []
+        test_auc_dict={}
         for ic, ix in enumerate(ixs):
             train_index, test_index = ix
             X_train, X_test = X[train_index, :], X[test_index, :]
@@ -176,13 +177,15 @@ class basic_ml():
             for lamb in feature_grid:
                 lambdict[lamb] = {}
                 train_auc_dict[lamb] = {}
+                test_auc_dict[lamb] = {}
+
 
                 ts_true_in = []
                 ts_pred_in = []
                 loss_vec_in = []
                 ts_probs_in = []
                 train_auc = []
-                for ix_in in ixs_inner:
+                for ic,ix_in in enumerate(ixs_inner):
                     ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, clf, y_probs_tr = self.train_func(model, \
                         ix_in, X_train, y_train, tmpts, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, \
                             test_param = lamb, var_to_learn = learn_var)
@@ -193,11 +196,12 @@ class basic_ml():
                             del lambdict[lamb]
                             continue
                     train_auc.append(sklearn.metrics.roc_auc_score(y_train[ix_in[0]], y_probs_tr[:,1]))
-                train_auc_dict[lamb][ix_in] = train_auc
+                train_auc_dict[lamb][ic] = train_auc
                 # print('AUC for lambda ' + str(lamb) + '= ' + str(train_auc))
 
                 met_dict = get_metrics(ts_pred_in, ts_true_in, ts_probs_in)
 
+                test_auc_dict[lamb][ic] = met_dict
                 lambdict[lamb] = met_dict
                 lambdict[lamb]['loss'] = np.sum(loss_vec_in)/len(loss_vec_in)
             end = time.time()
@@ -263,7 +267,7 @@ class basic_ml():
         final_res_dict['metrics'] = ret_dict
         final_res_dict['coef'] = coefs_all
         final_res_dict['model'] = model_all
-        final_res_dict['lambdict'] = lambdict
+        final_res_dict['lambdict'] = test_auc_dict
         final_res_dict['train_fit'] = training_probs
         final_res_dict['train_auc'] = auc_score_tr
         final_res_dict['train_auc_inner'] = train_auc_dict
