@@ -175,6 +175,7 @@ class basic_ml():
             train_auc_dict = {}
             for lamb in feature_grid:
                 lambdict[lamb] = {}
+                train_auc_dict[lamb] = {}
 
                 ts_true_in = []
                 ts_pred_in = []
@@ -192,7 +193,7 @@ class basic_ml():
                             del lambdict[lamb]
                             continue
                     train_auc.append(sklearn.metrics.roc_auc_score(y_train[ix_in[0]], y_probs_tr[:,1]))
-                train_auc_dict[lamb] = train_auc
+                train_auc_dict[lamb][ix_in] = train_auc
                 # print('AUC for lambda ' + str(lamb) + '= ' + str(train_auc))
 
                 met_dict = get_metrics(ts_pred_in, ts_true_in, ts_probs_in)
