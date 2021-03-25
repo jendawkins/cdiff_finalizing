@@ -7,6 +7,7 @@ import time
 import sys
 import itertools
 import pickle as pkl
+import re
 
 my_str = '''
 #!/bin/bash
