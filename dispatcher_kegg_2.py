@@ -80,7 +80,7 @@ pathway_dist = {}
 edges = []
 edge_dict = {}
 ix = 0
-for ic, pathways in kegg_dict.items():
+for ic, pathway in kegg_dict.items():
     ix += 1
     with open(path + pathway + '.pkl', 'rb') as f:
         doc = pkl.load(f)
