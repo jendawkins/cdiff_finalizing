@@ -80,22 +80,25 @@ pathway_dist = {}
 edges = []
 edge_dict = {}
 ix = 0
-for ic, pathway in kegg_dict.items():
+for ic, pathways in kegg_dict.items():
     ix += 1
-    with open(path + pathway + '.pkl', 'rb') as f:
-        doc = pkl.load(f)
+    if len(pathways) == 0:
+        continue
+    for pathway in pathways:
+        with open(path + pathway + '.pkl', 'rb') as f:
+            doc = pkl.load(f)
 
-    pattern = re.compile(r'[\s] M ?[0-9][^\s]+')
-    modules = pattern.findall(doc)
+        pattern = re.compile(r'[\s] M ?[0-9][^\s]+')
+        modules = pattern.findall(doc)
 
-    for module in modules:
-        module = module.replace(' ','')
-        
-        fname = 'kegg_module.lsf'
-        f = open(fname, 'w')
-        f.write(my_str.format(module))
-        f.close()
-        os.system('bsub < {}'.format(fname))
+        for module in modules:
+            module = module.replace(' ','')
+            
+            fname = 'kegg_module.lsf'
+            f = open(fname, 'w')
+            f.write(my_str.format(module))
+            f.close()
+            os.system('bsub < {}'.format(fname))
 
     
     
