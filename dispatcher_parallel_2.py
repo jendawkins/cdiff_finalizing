@@ -96,7 +96,7 @@ for input_path in ['week_one_bileacids', 'week_one_metabs', 'week_one_16s']:
         else:
             feat = [feat]
         for ic in range(48):
-            for seed in range(50):
+            for seed in range(5):
                 fname = 'cdiff_lr.lsf'
                 f = open(fname, 'w')
                 f.write(my_str.format(seed, param, ic, out_path, input_path, model, feat[0], feat[1],0))
@@ -107,7 +107,7 @@ for input_path in ['week_one_bileacids', 'week_one_metabs', 'week_one_16s']:
     time.sleep(5)
     for seed in range(50):
         for ic in range(48):
-            f.write(my_str.format(seed,param,ic,out_path,input_path,model,0,0,True))
+            f.write(my_str.format(seed,param,ic,out_path,input_path,model,0,0,1))
     # else:
     #     ic = 0
     #     fname = 'cdiff_lr.lsf'
