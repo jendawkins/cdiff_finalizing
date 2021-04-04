@@ -81,7 +81,6 @@ if not os.path.isdir(out_path):
 
 model = 'RF'
 param = 'auc'
-input_path = 'week_one_metabs'
 
 if model == 'LR':
     feature_grid = np.logspace(-3,3,100)
@@ -90,24 +89,25 @@ else:
     depth_grid = np.arange(2,20,1)
     feature_grid = list(itertools.product(estimators_grid, depth_grid))
 
-for feat in feature_grid:
-    if isinstance(feat, tuple):
-        feat = list(feat)
-    else:
-        feat = [feat]
-    for ic in range(48):
-        for seed in range(50):
-            fname = 'cdiff_lr.lsf'
-            f = open(fname, 'w')
-            f.write(my_str.format(seed, param, ic, out_path, input_path, model, feat[0], feat[1],False))
-            f.close()
-            os.system('bsub < {}'.format(fname))
-    time.sleep(0.5)
+for input_path in ['week_one_bileacids', 'week_one_metabs', 'week_one_16s']:
+    for feat in feature_grid:
+        if isinstance(feat, tuple):
+            feat = list(feat)
+        else:
+            feat = [feat]
+        for ic in range(48):
+            for seed in range(50):
+                fname = 'cdiff_lr.lsf'
+                f = open(fname, 'w')
+                f.write(my_str.format(seed, param, ic, out_path, input_path, model, feat[0], feat[1],False))
+                f.close()
+                os.system('bsub < {}'.format(fname))
+        time.sleep(0.5)
 
-time.sleep(5)
-for seed in range(50):
-    for ic in range(48):
-        f.write(my_str.format(seed,param,ic,out_path,input_path,model,0,0,True))
+    time.sleep(5)
+    for seed in range(50):
+        for ic in range(48):
+            f.write(my_str.format(seed,param,ic,out_path,input_path,model,0,0,True))
     # else:
     #     ic = 0
     #     fname = 'cdiff_lr.lsf'

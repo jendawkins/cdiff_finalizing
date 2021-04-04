@@ -20,14 +20,14 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--i", help = "inpath", type = str)
     parser.add_argument("-model", "--model", help = "model (LR, RF)", type = str)
     parser.add_argument("-test_feat", "--test_feat", help = "feature to test", type = float, nargs = '+')
-    parser.add_argument("-final", "--final", help = "final testing based on saved parameters or not", type = bool)
+    parser.add_argument("-final", "--final", help = "final testing based on saved parameters or not", type = int)
 
     args = parser.parse_args()
     mb = basic_ml()
     if not args.i:
-        path = 'inputs/week_one_metabs/'
+        path = 'inputs/in/week_one_metabs/'
     else:
-        path = 'inputs/' + args.i + '/'
+        path = 'inputs/in/' + args.i + '/'
     with open(path + 'x.pkl','rb') as f:
         x = pkl.load(f)
     with open(path + 'y.pkl','rb') as f:
@@ -48,7 +48,10 @@ if __name__ == "__main__":
     else:
         path_out = path_out + 'week_one_metabs/'
 
-    if args.final == True:
+    if not os.path.isdir(path_out):
+        os.mkdir(path_out)
+
+    if args.final == 1:
         path_out = path_out + 'final/'
 
     if not os.path.isdir(path_out):
@@ -80,28 +83,28 @@ if __name__ == "__main__":
         model = RandomForestClassifier(class_weight = 'balanced', random_state = seed)
         if 'all_data' in args.i:
             model = RandomForestClassifier(class_weight = None, random_state = seed)
-        lv = ['n_estimators','max_depth']
-        estimators_grid = np.arange(2,51,2)
+        lv = ['n_estimators','min_samples_split']
+        estimators_grid = np.arange(10,70,2)
         depth_grid = np.arange(2,20,1)
         feature_grid = list(itertools.product(estimators_grid, depth_grid))
         ft = tuple([int(tf) for tf in args.test_feat])
 
     if args.param == 'coef_bootstrap' or args.param == 'auc':
-        seed, X, y = mb.starter(model, x, y, 'metabolites', 'week_one')
-        ixs = leave_one_out_cv(x,y)
-        train_index, test_index = ixs[args.ix]
-        X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
-        y_train, y_test = y[train_index], y[test_index]
-        final_res_dict[ft] = mb.one_cv_func(model, X_train, y_train,dtype =None, \
-            var_to_learn= lv, test_param = ft)
+        if args.final == 0:
+            seed, X, y = mb.starter(model, x, y, 'metabolites', 'week_one')
+            ixs = leave_one_out_cv(x,y)
+            train_index, test_index = ixs[args.ix]
+            X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
+            y_train, y_test = y[train_index], y[test_index]
+            final_res_dict = mb.one_cv_func(model, X_train, y_train,dtype =None, \
+                var_to_learn= lv, test_param = ft)
 
-        if args.final == True:
+        elif args.final == 1:
             res_dict = get_resdict_from_file(path_out)
             best_param_dict = get_best_param(res_dict, args.param)
-
             train_inde, test_index = ixs[args.ix]
             best_param = best_param_dict[args.ix]
-            final_res_dict = mb.fit_all(model, x, y, var_to_learn = lv, test_param = best_param)
+            final_res_dict[ft] = mb.fit_all(model, x, y, var_to_learn = lv, test_param = best_param)
             
     if args.param == 'auc_bootstrap':
         seed, X, y = mb.starter(model, x, y, 'metabolites', 'week_one')
@@ -141,11 +144,14 @@ if __name__ == "__main__":
     with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
         pickle.dump(final_res_dict, f)
 
-    # end = time.time()
-    # passed = np.round((end - start)/60, 3)
-    # f2 = open(path_out + args.param + ".txt","a")
-    # f2.write(str(args.seed) + ' complete at ' + str(args.ix) +  ' in ' + str(passed) + ' minutes' + '\n')
-    # f2.close()
+    end = time.time()
+    passed = np.round((end - start)/60, 3)
+    f2 = open(path_out + args.param + str(args.ix) + "_" + str(args.seed) + ".txt","a")
+    if args.model == 'RF':
+        f2.write(lv[0] + '=' + str(args.test_feat[0]) + lv[1] + '=' + str(args.test_feat[1]) + ' complete at ' + str(args.ix) +  ' in ' + str(passed) + ' minutes' + '\n')
+    else:
+        f2.write(lv +'=' + str(args.test_feat[0]) + ' complete at ' + str(args.ix) +  ' in ' + str(passed) + ' minutes' + '\n')
+    f2.close()
         
     
 

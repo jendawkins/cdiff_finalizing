@@ -22,7 +22,6 @@ class basic_ml():
         if 'class_weight' in params and params['class_weight'] == None:
             clf = model.fit(X, y, sample_weight = sample_weights)
         else:
-            assert(X.shape[0] < X.shape[1])
             clf = model.fit(X, y)
         return clf
     
@@ -245,22 +244,7 @@ class basic_ml():
             training_probs.append((y[ix[0]], y_probs_tr))
 
             auc_score_tr.append(sklearn.metrics.roc_auc_score(y_train, y_probs_tr[:,1]))
-        #     print(best_lambdas)
 
-        #     print('Fold ' + str(ic))
-        #     if isinstance(best_lambda, list):
-        #         print('Best ' + learn_var + ': ' + str(best_lambda[0]))
-        #     else:
-        #         print('Best ' + learn_var + ': ' + str(best_lambda))
-        # try:
-        #     print(get_metrics(ts_pred, ts_true, ts_probs))
-        # except:
-        #     print(ts_true)
-        #     print(ts_pred)
-        #     print(ts_probs)
-        # print(' ')
-        
-        # print('Random seed ' + str(seed)+ ' Complete')
         ret_dict = get_metrics(ts_pred, ts_true, ts_probs)
 
         final_res_dict['best_lambda'] = best_lambdas
