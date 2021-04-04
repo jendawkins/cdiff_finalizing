@@ -85,7 +85,7 @@ param = 'auc'
 if model == 'LR':
     feature_grid = np.logspace(-3,3,100)
 else:
-    estimators_grid = np.arange(2,51,2)
+    estimators_grid = np.arange(10,70,2)
     depth_grid = np.arange(2,20,1)
     feature_grid = list(itertools.product(estimators_grid, depth_grid))
 
@@ -99,7 +99,7 @@ for input_path in ['week_one_bileacids', 'week_one_metabs', 'week_one_16s']:
             for seed in range(50):
                 fname = 'cdiff_lr.lsf'
                 f = open(fname, 'w')
-                f.write(my_str.format(seed, param, ic, out_path, input_path, model, feat[0], feat[1],False))
+                f.write(my_str.format(seed, param, ic, out_path, input_path, model, feat[0], feat[1],0))
                 f.close()
                 os.system('bsub < {}'.format(fname))
         time.sleep(0.5)
