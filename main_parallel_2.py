@@ -35,18 +35,12 @@ if __name__ == "__main__":
 
     coef_names = x.columns.values
 
-    if args.o:
-        path_out = args.o + '/'
-    else:
-        path_out = 'outputs/'
+    path_out = args.o + '/'
 
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
     
-    if args.i:
-        path_out = path_out + args.i + '/'
-    else:
-        path_out = path_out + 'week_one_metabs/'
+    path_out = path_out + args.i + '/'
 
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
@@ -68,15 +62,13 @@ if __name__ == "__main__":
         f1.write(args.param + ' ' + str(args.ix) + ' initialized at seed ' + str(args.seed) + '\n')
         f1.close()
     
-    if args.ix not in final_res_dict.keys():
-        final_res_dict[args.ix] = {}
 
     if args.model == 'LR':
         model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', random_state = seed, solver = 'liblinear')
         if 'all_data' in args.i:
             model = LogisticRegression(class_weight = None, penalty = 'l1', random_state = seed, solver = 'liblinear')
         lv = 'C'
-        feature_grid = np.logspace(-3,3,100)
+        # feature_grid = np.logspace(-3,3,100)
         ft = args.test_feat[0]
 
     elif args.model == 'RF':
@@ -84,9 +76,9 @@ if __name__ == "__main__":
         if 'all_data' in args.i:
             model = RandomForestClassifier(class_weight = None, random_state = seed)
         lv = ['n_estimators','min_samples_split']
-        estimators_grid = np.arange(10,70,2)
-        depth_grid = np.arange(2,20,1)
-        feature_grid = list(itertools.product(estimators_grid, depth_grid))
+        # estimators_grid = np.arange(10,70,2)
+        # depth_grid = np.arange(2,20,1)
+        # feature_grid = list(itertools.product(estimators_grid, depth_grid))
         ft = tuple([int(tf) for tf in args.test_feat])
 
     if args.param == 'coef_bootstrap' or args.param == 'auc':
@@ -104,45 +96,53 @@ if __name__ == "__main__":
             best_param_dict = get_best_param(res_dict, args.param)
             train_inde, test_index = ixs[args.ix]
             best_param = best_param_dict[args.ix]
-            final_res_dict[ft] = mb.fit_all(model, x, y, var_to_learn = lv, test_param = best_param)
+            final_res_dict = mb.fit_all(model, x, y, var_to_learn = lv, test_param = best_param)
             
-    if args.param == 'auc_bootstrap':
-        seed, X, y = mb.starter(model, x, y, 'metabolites', 'week_one')
-        ixs = leave_one_out_cv(x,y)
-        train_index, test_index = ixs[args.ix]
-        X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
-        y_train, y_test = y[train_index], y[test_index]
-        res_dict = mb.nested_cv_func(model, X_train, y_train, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, \
-            learn_var = lv,feature_grid = feature_grid)
-        if args.ix not in final_res_dict[seed].keys():
-            final_res_dict[seed][args.ix] = res_dict
+    # if args.param == 'auc_bootstrap':
+    #     seed, X, y = mb.starter(model, x, y, 'metabolites', 'week_one')
+    #     ixs = leave_one_out_cv(x,y)
+    #     train_index, test_index = ixs[args.ix]
+    #     X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
+    #     y_train, y_test = y[train_index], y[test_index]
+    #     res_dict = mb.nested_cv_func(model, X_train, y_train, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, \
+    #         learn_var = lv,feature_grid = feature_grid)
+    #     if args.ix not in final_res_dict[seed].keys():
+    #         final_res_dict[seed][args.ix] = res_dict
 
-    if args.param == 'best_lambda':
-        auc = {}
-        for l in feature_grid:
-            final_res_dict_c2 = mb.one_cv_func(model, x, y,dtype =None, var_to_learn= lv, test_param = l)
-            auc[l] = final_res_dict_c2['metrics']['auc']
-        m_auc = np.max(list(auc.values()))
-        best_l = [l for l,a in auc.items() if a==m_auc]
-        final_res_dict = best_l
+    # if args.param == 'best_lambda':
+    #     auc = {}
+    #     for l in feature_grid:
+    #         final_res_dict_c2 = mb.one_cv_func(model, x, y,dtype =None, var_to_learn= lv, test_param = l)
+    #         auc[l] = final_res_dict_c2['metrics']['auc']
+    #     m_auc = np.max(list(auc.values()))
+    #     best_l = [l for l,a in auc.items() if a==m_auc]
+    #     final_res_dict = best_l
 
-    if args.param == 'coef':
-        param_vec = []
-        for file in os.listdir(path_out):
-            if 'best_lambda' in file:
-                with open(path_out + file,'rb') as f:
-                    frd = pickle.load(f)
-            param_vec.append(list(frd.values())[0][0])
+    # if args.param == 'coef':
+    #     param_vec = []
+    #     for file in os.listdir(path_out):
+    #         if 'best_lambda' in file:
+    #             with open(path_out + file,'rb') as f:
+    #                 frd = pickle.load(f)
+    #         param_vec.append(list(frd.values())[0][0])
         
-        if args.model == 'RF':
-            out = [np.median(list(x)) for x in list(zip(*param_vec))]
-            best_param = tuple(out)
-        else:
-            best_param = np.median(param_vec)
-        final_res_dict = mb.fit_all(model, x, y, dtype = 'metabolites', optim_param = 'auc', var_to_learn = lv, optimal_param = best_param)
+    #     if args.model == 'RF':
+    #         out = [np.median(list(x)) for x in list(zip(*param_vec))]
+    #         best_param = tuple(out)
+    #     else:
+    #         best_param = np.median(param_vec)
+    #     final_res_dict = mb.fit_all(model, x, y, dtype = 'metabolites', optim_param = 'auc', var_to_learn = lv, optimal_param = best_param)
     
-    with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
-        pickle.dump(final_res_dict, f)
+    if args.model == 'RF':
+        with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + "_" + \
+            str(args.test_feat[0]) + "_" str(args.test_feat[1]) + '.pkl','wb') as f:
+            
+            pickle.dump(final_res_dict, f)
+    elif args.model == 'LR':
+        with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + "_" + \
+            str(args.test_feat[0]) + '.pkl','wb') as f:
+            
+            pickle.dump(final_res_dict, f)
 
     end = time.time()
     passed = np.round((end - start)/60, 3)
