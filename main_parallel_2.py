@@ -135,7 +135,7 @@ if __name__ == "__main__":
     
     if args.model == 'RF':
         with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + "_" + \
-            str(args.test_feat[0]) + "_" str(args.test_feat[1]) + '.pkl','wb') as f:
+            str(args.test_feat[0]) + "_" + str(args.test_feat[1]) + '.pkl','wb') as f:
             
             pickle.dump(final_res_dict, f)
     elif args.model == 'LR':
