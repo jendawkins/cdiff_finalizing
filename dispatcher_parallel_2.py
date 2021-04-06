@@ -89,24 +89,23 @@ else:
     depth_grid = np.arange(2,20,1)
     feature_grid = list(itertools.product(estimators_grid, depth_grid))
 
-for input_path in ['week_one_bileacids', 'week_one_metabs', 'week_one_16s']:
-    for seed in range(5):
-        for feat in feature_grid:
-            if isinstance(feat, tuple):
-                feat = list(feat)
-            else:
-                feat = [feat,0]
-            for ic in range(48):
-                fname = 'cdiff_lr.lsf'
-                f = open(fname, 'w')
-                f.write(my_str.format(seed, param, ic, out_path, input_path, model, feat[0], feat[1],0))
-                f.close()
-                os.system('bsub < {}'.format(fname))
-
-    time.sleep(5)
-    for seed in range(5):
+seed = 0
+for input_path in ['week_one_metabs', 'week_one_16s']:
+    for feat in feature_grid:
+        if isinstance(feat, tuple):
+            feat = list(feat)
+        else:
+            feat = [feat,0]
         for ic in range(48):
-            f.write(my_str.format(seed,param,ic,out_path,input_path,model,0,0,1))
+            fname = 'cdiff_lr.lsf'
+            f = open(fname, 'w')
+            f.write(my_str.format(seed, param, ic, out_path, input_path, model, feat[0], feat[1],0))
+            f.close()
+            os.system('bsub < {}'.format(fname))
+
+time.sleep(5)
+for ic in range(48):
+    f.write(my_str.format(seed,param,ic,out_path,input_path,model,0,0,1))
     # else:
     #     ic = 0
     #     fname = 'cdiff_lr.lsf'
