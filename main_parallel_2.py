@@ -94,9 +94,12 @@ if __name__ == "__main__":
         elif args.final == 1:
             res_dict = get_resdict_from_file(path_out)
             best_param_dict = get_best_param(res_dict, args.param)
-            train_inde, test_index = ixs[args.ix]
+            train_index, test_index = ixs[args.ix]
             best_param = best_param_dict[args.ix]
-            final_res_dict = mb.fit_all(model, x, y, var_to_learn = lv, test_param = best_param)
+            X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
+            y_train, y_test = y[train_index], y[test_index]
+            final_res_dict = mb.one_cv_func(model, X_train, y_train,dtype =None, \
+                var_to_learn= lv, test_param = best_param)
             
     # if args.param == 'auc_bootstrap':
     #     seed, X, y = mb.starter(model, x, y, 'metabolites', 'week_one')
