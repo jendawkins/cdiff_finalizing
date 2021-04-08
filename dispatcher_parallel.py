@@ -78,15 +78,16 @@ if not os.path.isdir(out_path):
     os.mkdir(out_path)
 
 model = 'LR'
-param = 'auc_bootstrap_2'
+param = 'auc_bootstrap'
 
-for input_path in ['week_one_16s','week_one_ALL','week_one_metabs']:
-    for ix in range(49):
-        fname = 'cdiff_lr.lsf'
-        f = open(fname, 'w')
-        f.write(my_str.format(0, param, ix, out_path, input_path, model))
-        f.close()
-        os.system('bsub < {}'.format(fname))
+for input_path in ['week_one_ALL', 'week_one_metabs','week_one_16s']:
+    for seeds in range(1,11):
+        for ix in range(49):
+            fname = 'cdiff_lr.lsf'
+            f = open(fname, 'w')
+            f.write(my_str.format(0, param, ix, out_path, input_path, model))
+            f.close()
+            os.system('bsub < {}'.format(fname))
 
 
 
