@@ -57,8 +57,8 @@ if __name__ == "__main__":
     final_res_dict = {}
 
     seed = args.seed
-    if seed not in final_res_dict.keys():
-        final_res_dict[seed] = {}
+    # if seed not in final_res_dict.keys():
+    #     final_res_dict[seed] = {}
 
     if args.model == 'LR':
         model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', random_state = seed, solver = 'liblinear')
@@ -106,11 +106,11 @@ if __name__ == "__main__":
 
         best_param = res_dict_inner['best_lambda']
         res_dict_outer = mb.train_test(model, X_train, X_test, y_train, y_test, optimal_param = best_param, learn_var = lv)
-        if args.ix[0] not in final_res_dict[seed].keys():
-            final_res_dict[seed][args.ix[0]] = {}
-            final_res_dict[seed][args.ix[0]]['outer_metrics'] = res_dict_outer
-            if args.ix[1] not in final_res_dict[seed][args.ix[0]].keys():
-                final_res_dict[seed][args.ix[1]][args.ix[1]] = res_dict_inner
+        # if args.ix[0] not in final_res_dict[seed].keys():
+        #     final_res_dict[seed][args.ix[0]] = {}
+        final_res_dict['outer_metrics'] = res_dict_outer
+            # if args.ix[1] not in final_res_dict[seed][args.ix[0]].keys():
+        final_res_dict['inner_metrics'] = res_dict_inner
 
     if args.param == 'best_lambda':
         auc = {}
