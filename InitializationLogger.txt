@@ -1,0 +1,12 @@
+auc None initialized at seed 0
+auc None initialized at seed 0
+auc None initialized at seed 0
+auc None initialized at seed 0
+auc None initialized at seed 0
+auc None initialized at seed 5
+auc None initialized at seed 5
+auc None initialized at seed 5
+auc None initialized at seed 5
+auc None initialized at seed 5
+auc None initialized at seed 5
+auc None initialized at seed 5

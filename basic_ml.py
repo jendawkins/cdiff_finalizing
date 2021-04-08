@@ -25,7 +25,7 @@ class basic_ml():
             clf = model.fit(X, y)
         return clf
     
-    def starter(self, model, x, targets, dtype, ttype, add_date = True):
+    def starter(self, model, x, targets):
         if model.random_state:
             seed = model.random_state
         else:
@@ -83,9 +83,9 @@ class basic_ml():
 
         return ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, clf, y_probs_train
 
-    def fit_all(self, model, x, targets, name='', dtype = 'metabolites', ttype = 'week_one', \
+    def fit_all(self, model, x, targets, name='',  \
         optim_param = 'auc', var_to_learn = 'C', optimal_param = 7.753):
-        seed, X, y = self.starter(model, x, targets, dtype, ttype)
+        seed, X, y = self.starter(model, x, targets)
         final_res_dict = {}
         tmpts = np.array([ix.split('-')[1] for ix in x.index.values])
         samp_weights = get_class_weights(y, tmpts)
@@ -99,11 +99,25 @@ class basic_ml():
             final_res_dict['coef'] = clf.coef_
         return final_res_dict
 
+    def train_test(self, model, x_train, x_test, y_train, y_test, optimal_param, learn_var):
+        final_res_dict = {}
+        tmpts = np.array([ix.split('-')[1] for ix in x_train.index.values])
+        samp_weights = get_class_weights(y_train, tmpts)
+        clf = self.learner(model, np.array(x_train), y_train, optimal_param, learn_var, sample_weights = samp_weights)
+        y_guess = clf.predict(np.array(x_test))
+        y_probs = clf.predict_proba(np.array(x_test))[:,1]
+        final_res_dict['y_guess'] = y_guess
+        final_res_dict['y_probs'] = y_probs
+        final_res_dict['y_true'] = y_test
+        final_res_dict['model'] = clf
+        if 'coef_' in clf.get_params().keys():
+            final_res_dict['coef'] = clf.coef_
+        return final_res_dict
 
 
-    def one_cv_func(self, model, x, targets, split_outer = leave_one_out_cv, name = '', dtype = 'metabolites', ttype = 'week_one', \
-        folds = None, optim_param = 'auc', final_res_dict = {}, var_to_learn = 'C', test_param = 1):
-        seed, X, y= self.starter(model, x, targets, dtype, ttype)
+    def one_cv_func(self, model, x, targets, split_outer = leave_one_out_cv, name = '', \
+        folds = None, optim_param = 'auc', final_res_dict = {}, var_to_learn = 'C', test_param = 1, ttype = 'week_one'):
+        seed, X, y= self.starter(model, x, targets)
 
         final_res_dict = {}
         ixs = split_outer(x, y, folds = folds, ddtype = ttype)
@@ -139,12 +153,96 @@ class basic_ml():
         final_res_dict['model'] = model_all
         return final_res_dict
 
+    def nest_cv_func(self, model, X_train, y_train, feature_grid = None, learn_var = 'C', optim_param = 'auc', plot_lambdas = False, \
+        stop_lambdas = False, smooth_auc = True, split_inner = leave_one_out_cv, folds = None, ttype = 'week_one'):
+        seed, X, y = self.starter(model, X_train, y_train)
+        final_res_dict = {}
+        lambdict = {}
+        ixs_inner = split_inner(X_train, y_train, folds = folds, ddtype = ttype) 
+        tmpts = np.array([ix.split('-')[1] for ix in X_train.index.values])
+
+        start = time.time()
+        train_auc_dict = {}
+        test_auc_dict = {}
+        ts_true = []
+        ts_pred = []
+        loss_vec = []
+        ts_probs = []
+        for lamb in feature_grid:
+            lambdict[lamb] = {}
+            train_auc_dict[lamb] = {}
+            test_auc_dict[lamb] = {}
+
+
+            ts_true_in = []
+            ts_pred_in = []
+            loss_vec_in = []
+            ts_probs_in = []
+            train_auc = []
+            for ic_in,ix_in in enumerate(ixs_inner):
+                ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, clf, y_probs_tr = self.train_func(model, \
+                    ix_in, X, y_train, tmpts, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, \
+                        test_param = lamb, var_to_learn = learn_var)
+
+                if 'coef_' in clf.get_params().keys():
+                    num_coefs = sum(clf.coef_!=0)
+                    if np.mean(num_coefs)< nzero_thresh and stop_lambdas:
+                        del lambdict[lamb]
+                        continue
+                train_auc.append(sklearn.metrics.roc_auc_score(y_train[ix_in[0]], y_probs_tr[:,1]))
+            train_auc_dict[lamb] = train_auc
+            # print('AUC for lambda ' + str(lamb) + '= ' + str(train_auc))
+
+            met_dict = get_metrics(ts_pred_in, ts_true_in, ts_probs_in)
+
+            test_auc_dict[lamb] = met_dict
+            lambdict[lamb] = met_dict
+            lambdict[lamb]['loss'] = np.sum(loss_vec_in)/len(loss_vec_in)
+        end = time.time()
+        # if ic == 0:
+        #     print('Time for innermost loop: ' + str(end - start))
+        lambdas = list(lambdict.keys())
+        key = optim_param
+        vec = np.array([lambdict[it][key] for it in lambdas])
+        ma = moving_average(vec, n=5)
+        best_param = np.max(vec)
+        best_param_ma = np.max(ma)
+        offset = int(np.floor(5./2))
+        if key == 'loss':
+            if smooth_auc:
+                max_ix  = np.argmin(ma) + offset
+            else:
+                max_ix  = np.argmin(vec)
+        else:
+            if smooth_auc:
+                max_ix = np.argmax(ma) + offset
+            else:
+                max_ix = np.argmax(vec)
+        best_lambda = lambdas[max_ix]
+
+        if plot_lambdas:
+            fig2, ax2 = plot_lambdas_func(lambdict, optim_param, offset, ma, best_lambda)
+        
+        if 'coef_' in clf.get_params().keys():
+            coefs_all = clf.coef_
+        else:
+            coefs_all = None
+        model_all = clf
+        final_res_dict['best_lambda'] = best_lambda
+        final_res_dict['coef'] = coefs_all
+        final_res_dict['model'] = model_all
+        final_res_dict['lambdict'] = test_auc_dict
+        final_res_dict['train_fit'] = (y_train, y_probs_tr[:,1])
+        final_res_dict['train_auc_inner'] = train_auc_dict
+        return final_res_dict
+
+
 
     def nested_cv_func(self, model, x, targets, feature_grid = np.logspace(-3, 3, 100), \
         split_outer = leave_one_out_cv, split_inner = leave_one_out_cv, learn_var = 'C', nzero_thresh = 10, \
-            name = '', dtype = 'metabolites', ttype = 'week_one', folds = None, optim_param = 'auc', plot_lambdas = False, \
-                stop_lambdas = False, smooth_auc = True):
-        seed, X, y = self.starter(model, x, targets, dtype, ttype)
+            name = '', folds = None, optim_param = 'auc', plot_lambdas = False, \
+                stop_lambdas = False, smooth_auc = True, ttype = 'week_one'):
+        seed, X, y = self.starter(model, x, targets)
         final_res_dict = {}
 
         ixs = split_outer(x, y, folds = folds, ddtype = ttype)
@@ -259,8 +357,8 @@ class basic_ml():
 
     def double_nest(self, model, x, targets, feature_grid = np.logspace(-3, 3, 100), \
         split_outer = leave_one_out_cv, split_inner = leave_one_out_cv, learn_var = 'C', nzero_thresh = 10, \
-            name = '', dtype = 'metabolites', ttype = 'week_one', folds = None, optim_param = 'auc', plot_lambdas = True):
-        seed, X, y = self.starter(model, x, targets, dtype, ttype)
+            name = '', folds = None, optim_param = 'auc', plot_lambdas = True, ttype = 'week_one'):
+        seed, X, y = self.starter(model, x, targets)
 
         ixs = split_outer(x, y, folds = folds, ddtype = ttype)
         tmpts = np.array([ix.split('-')[1] for ix in x.index.values])

@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-seed", "--seed", help="random_seed", type=int)
     parser.add_argument("-param", "--param", help = "coef, coef_bootstrap, auc, auc_bootstrap, or best_lambda", type = str)
-    parser.add_argument("-ix", "--ix", help = "index for splits", type = int)
+    parser.add_argument("-ix", "--ix", help = "index for splits", type = int, nargs = '+')
     parser.add_argument("-o", "--o", help = "outpath", type = str)
     parser.add_argument("-i", "--i", help = "inpath", type = str)
     parser.add_argument("-model", "--model", help = "model (LR, RF)", type = str)
@@ -30,6 +30,11 @@ if __name__ == "__main__":
         x = pkl.load(f)
     with open(path + 'y.pkl','rb') as f:
         y = pkl.load(f)
+
+    if isinstance(y[0], str):
+        y = (np.array(y) == 'Recur').astype('float')
+    else:
+        y = np.array(y)
 
     coef_names = x.columns.values
 
@@ -71,21 +76,41 @@ if __name__ == "__main__":
         depth_grid = np.arange(2,20,1)
         feature_grid = list(itertools.product(estimators_grid, depth_grid))
 
-    if args.param == 'coef_bootstrap' or args.param == 'auc':
-        final_res_dict[seed] = mb.nested_cv_func(model, x, y, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, learn_var = lv, \
-            feature_grid = feature_grid)
+    # if args.param == 'coef_bootstrap' or args.param == 'auc':
+    #     final_res_dict[seed] = mb.nested_cv_func(model, x, y,optim_param = 'auc', plot_lambdas=False, learn_var = lv, \
+    #         feature_grid = feature_grid)
         
 
-    if args.param == 'auc_bootstrap':
-        seed, X, y = mb.starter(model, x, y, 'metabolites', 'week_one')
+    if args.param == 'coef_bootstrap' or args.param == 'auc':
         ixs = leave_one_out_cv(x,y)
-        train_index, test_index = ixs[args.ix]
+        train_index, test_index = ixs[args.ix[0]]
         X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
-        res_dict = mb.nested_cv_func(model, X_train, y_train, dtype = 'metabolites', optim_param = 'auc', plot_lambdas=False, \
+        res_dict = mb.nest_cv_func(model, X_train, y_train, optim_param = 'auc', plot_lambdas=False, \
             learn_var = lv,feature_grid = feature_grid)
         if args.ix not in final_res_dict[seed].keys():
             final_res_dict[seed][args.ix] = res_dict
+
+    if args.param == 'auc_bootstrap':
+        ixs = leave_one_out_cv(x,y)
+        train_index, test_index = ixs[args.ix[0]]
+        X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
+        y_train, y_test = y[train_index], y[test_index]
+
+        ixs = leave_one_out_cv(X_train,y_train)
+        train_index_in, test_index_in = ixs[args.ix[1]]
+        X_train_in, X_test_in = X_train.iloc[train_index_in,:], X_train.iloc[test_index_in]
+        y_train_in, y_test_in = y_train[train_index_in], y_train[test_index_in]
+        res_dict_inner = mb.nest_cv_func(model, X_train_in, y_train_in, optim_param = 'auc', plot_lambdas=False, \
+            learn_var = lv,feature_grid = feature_grid)
+
+        best_param = res_dict_inner['best_lambda']
+        res_dict_outer = mb.train_test(model, X_train, X_test, y_train, y_test, optimal_param = best_param, learn_var = lv)
+        if args.ix[0] not in final_res_dict[seed].keys():
+            final_res_dict[seed][args.ix[0]] = {}
+            final_res_dict[seed][args.ix[0]]['outer_metrics'] = res_dict_outer
+            if args.ix[1] not in final_res_dict[seed][args.ix[0]].keys():
+                final_res_dict[seed][args.ix[1]][args.ix[1]] = res_dict_inner
 
     if args.param == 'best_lambda':
         auc = {}
@@ -109,7 +134,7 @@ if __name__ == "__main__":
             best_param = tuple(out)
         else:
             best_param = np.median(param_vec)
-        final_res_dict[seed] = mb.fit_all(model, x, y, dtype = 'metabolites', optim_param = 'auc', var_to_learn = lv, optimal_param = best_param)
+        final_res_dict[seed] = mb.fit_all(model, x, y, optim_param = 'auc', var_to_learn = lv, optimal_param = best_param)
     
     if args.param == 'auc_bootstrap':
         with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
