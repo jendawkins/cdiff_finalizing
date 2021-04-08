@@ -91,6 +91,14 @@ if __name__ == "__main__":
         if args.ix not in final_res_dict[seed].keys():
             final_res_dict[seed][args.ix] = res_dict
 
+    if args.param == 'auc_bootstrap_2':
+        ixs = leave_one_out_cv(x,y)
+        train_index, test_index = ixs[args.ix[0]]
+        X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
+        y_train, y_test = y[train_index], y[test_index]
+        final_res_dict = mb.nested_cv_func(model, X_train, y_train,optim_param = 'auc', plot_lambdas=False, learn_var = lv, \
+            feature_grid = feature_grid)
+
     if args.param == 'auc_bootstrap':
         ixs = leave_one_out_cv(x,y)
         train_index, test_index = ixs[args.ix[0]]
@@ -136,7 +144,7 @@ if __name__ == "__main__":
             best_param = np.median(param_vec)
         final_res_dict[seed] = mb.fit_all(model, x, y, optim_param = 'auc', var_to_learn = lv, optimal_param = best_param)
     
-    if args.param == 'auc_bootstrap':
+    if 'auc_bootstrap' in args.param:
         with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
             pickle.dump(final_res_dict, f)
     else:

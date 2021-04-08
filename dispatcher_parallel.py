@@ -63,7 +63,7 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./main_parallel.py -seed {0} -param {1} -ix {2} {3} -o {4} -i {5} -model {6} 
+python3 ./main_parallel.py -seed {0} -param {1} -ix {2} -o {3} -i {4} -model {5} 
 '''
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--o", help = "outpath", type = str)
@@ -78,22 +78,15 @@ if not os.path.isdir(out_path):
     os.mkdir(out_path)
 
 model = 'LR'
-param = 'auc_bootstrap'
+param = 'auc_bootstrap_2'
 
-for input_path in ['week_one_metabs', 'week_one_16s','week_one_ALL']:
-    for ix in range(48):
-        if param == 'auc_bootstrap':
-            for ix2 in range(47):
-                fname = 'cdiff_lr.lsf'
-                f = open(fname, 'w')
-                f.write(my_str.format(0, param, ix, ix2, out_path, input_path, model))
-                f.close()
-                os.system('bsub < {}'.format(fname))
-        else:
-            fname = 'cdiff_lr.lsf'
-            f = open(fname, 'w')
-            f.write(my_str.format(seed, param, ix, 0, out_path, input_path, model))
-            f.close()
-            os.system('bsub < {}'.format(fname))
+for input_path in ['week_one_16s','week_one_ALL','week_one_metabs']:
+    for ix in range(49):
+        fname = 'cdiff_lr.lsf'
+        f = open(fname, 'w')
+        f.write(my_str.format(0, param, ix, out_path, input_path, model))
+        f.close()
+        os.system('bsub < {}'.format(fname))
+
 
 
