@@ -73,6 +73,7 @@ if __name__ == "__main__":
             model = RandomForestClassifier(class_weight = None, random_state = seed)
         lv = ['n_estimators','max_depth']
         estimators_grid = np.arange(2,51,2)
+        estimators_grid = np.append(estimators_grid, np.arange(55,100,5))
         depth_grid = np.arange(2,20,1)
         feature_grid = list(itertools.product(estimators_grid, depth_grid))
 
@@ -88,8 +89,7 @@ if __name__ == "__main__":
         y_train, y_test = y[train_index], y[test_index]
         res_dict = mb.nest_cv_func(model, X_train, y_train, optim_param = 'auc', plot_lambdas=False, \
             learn_var = lv,feature_grid = feature_grid)
-        if args.ix not in final_res_dict[seed].keys():
-            final_res_dict[seed][args.ix] = res_dict
+        final_res_dict = res_dict
 
     if args.param == 'auc_bootstrap':
         ixs = leave_one_out_cv(x,y)
@@ -98,7 +98,6 @@ if __name__ == "__main__":
         y_train, y_test = y[train_index], y[test_index]
         final_res_dict = mb.nested_cv_func(model, X_train, y_train,optim_param = 'auc', plot_lambdas=False, learn_var = lv, \
             feature_grid = feature_grid)
-        print(final_res_dict['metrics']['auc'])
 
     # if args.param == 'auc_bootstrap':
     #     ixs = leave_one_out_cv(x,y)
@@ -154,7 +153,7 @@ if __name__ == "__main__":
     
     end = time.time()
     passed = np.round((end - start)/60, 3)
-    f2 = open(args.param + ".txt","a")
+    f2 = open(args.param + args.model + ".txt","a")
     f2.write(str(args.seed) + ' complete at ' + str(args.ix) +  ' in ' + str(passed) + ' minutes' + '\n')
     f2.close()
         

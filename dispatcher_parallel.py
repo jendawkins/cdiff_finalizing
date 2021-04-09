@@ -28,7 +28,7 @@ my_str = '''
 
 # Please make a copy of this script for your own modifications
 
-#BSUB -q short
+#BSUB -q vshort
 #BSUB -n 12
 
 # Some important variables to check (Can be removed later)
@@ -77,11 +77,11 @@ if not args.o:
 if not os.path.isdir(out_path):
     os.mkdir(out_path)
 
-model = 'LR'
-param = 'auc_bootstrap'
+model = 'RF'
+param = 'auc'
 
-for input_path in ['week_one_ALL', 'week_one_metabs','week_one_16s']:
-    for seed in range(1,50):
+for seed in range(0,50):
+    for input_path in ['week_one_ALL', 'week_one_metabs','week_one_16s','week_one_metabs_sig','week_one_bileacids']:
         for ix in range(49):
             fname = 'cdiff_lr.lsf'
             f = open(fname, 'w')
