@@ -81,11 +81,11 @@ model = 'LR'
 param = 'auc_bootstrap'
 
 for input_path in ['week_one_ALL', 'week_one_metabs','week_one_16s']:
-    for seeds in range(1,11):
+    for seed in range(1,50):
         for ix in range(49):
             fname = 'cdiff_lr.lsf'
             f = open(fname, 'w')
-            f.write(my_str.format(0, param, ix, out_path, input_path, model))
+            f.write(my_str.format(1, param, ix, out_path, input_path, model))
             f.close()
             os.system('bsub < {}'.format(fname))
 
