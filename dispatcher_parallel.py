@@ -78,16 +78,17 @@ if not os.path.isdir(out_path):
     os.mkdir(out_path)
 
 model = 'RF'
-param = 'auc'
+param = 'auc_bootstrap'
 
 for seed in range(0,50):
-    for input_path in ['week_one_ALL', 'week_one_metabs','week_one_16s','week_one_metabs_sig','week_one_bileacids']:
-        for ix in range(49):
-            fname = 'cdiff_lr.lsf'
-            f = open(fname, 'w')
-            f.write(my_str.format(1, param, ix, out_path, input_path, model))
-            f.close()
-            os.system('bsub < {}'.format(fname))
+    for model in ['LR','RF']:
+        for input_path in ['week_one_ALL', 'week_one_metabs','week_one_16s','week_one_metabs_sig','week_one_bileacids']:
+            for ix in range(49):
+                fname = 'cdiff_lr.lsf'
+                f = open(fname, 'w')
+                f.write(my_str.format(seed, param, ix, out_path, input_path, model))
+                f.close()
+                os.system('bsub < {}'.format(fname))
 
 
 

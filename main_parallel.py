@@ -46,6 +46,10 @@ if __name__ == "__main__":
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
     
+    path_out = path_out + args.model + '/'
+    if not os.isdir(path_out):
+        os.mkdir(path_out)
+        
     if args.i:
         path_out = path_out + args.i + '/'
     else:
@@ -145,10 +149,10 @@ if __name__ == "__main__":
         final_res_dict[seed] = mb.fit_all(model, x, y, optim_param = 'auc', var_to_learn = lv, optimal_param = best_param)
     
     if 'auc_bootstrap' in args.param:
-        with open(path_out + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
+        with open(path_out + "_" + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
             pickle.dump(final_res_dict, f)
     else:
-        with open(path_out + args.param+ "_" + str(args.seed) + '.pkl','wb') as f:
+        with open(path_out + "_" + args.param+ "_" + str(args.seed) + '.pkl','wb') as f:
             pickle.dump(final_res_dict, f)
     
     end = time.time()
