@@ -39,17 +39,13 @@ if __name__ == "__main__":
     coef_names = x.columns.values
 
     if args.o:
-        path_out = args.o + '/'
+        path_out = args.model + '_' + args.o + '/'
     else:
-        path_out = 'outputs/'
+        path_out = args.model + '_' + 'outputs/'
 
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
-    
-    path_out = path_out + args.model + '/'
-    if not os.isdir(path_out):
-        os.mkdir(path_out)
-        
+
     if args.i:
         path_out = path_out + args.i + '/'
     else:
