@@ -36,10 +36,6 @@ if __name__ == "__main__":
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
 
-    x, y = dat_dict[args.input]
-    y = (np.array(y)=='Recur').astype('float')
-    ixs = leave_one_out_cv(x,y)
-
     paths = os.listdir('inputs/in/')
     dat_dict = {}
     for path in paths:
@@ -50,6 +46,10 @@ if __name__ == "__main__":
         with open('inputs/in/' + path + '/y.pkl','rb') as f:
             y = pkl.load(f)
         dat_dict[path] = (x,y)
+
+    x, y = dat_dict[args.input]
+    y = (np.array(y)=='Recur').astype('float')
+    ixs = leave_one_out_cv(x,y)
 
     n_estimators = [int(x) for x in np.arange(5,50,5)]
     max_features = ['sqrt']
