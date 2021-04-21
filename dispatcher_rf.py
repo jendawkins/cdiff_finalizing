@@ -82,7 +82,6 @@ for seed in range(0,50):
     # for model in ['LR','RF']:
     for input_path in ['week_one_ALL', 'week_one_metabs','week_one_16s','week_one_bileacids']:
         for ix in range(49):
-            path_out = model + '_outputs/' + input_path + '/'
             fname = 'cdiff_rf.lsf'
             f = open(fname, 'w')
             f.write(my_str.format(input_path, out_path, seed, ix))
