@@ -149,7 +149,7 @@ class cdiffDataLoader():
         for i,ix in enumerate(self.data16s.columns.values):
             if ix not in self.simple_labels_by_tmpt.keys():
                 if i != len(self.data16s.columns.values):
-                    if np.float(ix.split('-'))>self.data16s.columns.values[i+1]:
+                    if np.float(ix.split('-')[1])>self.data16s.columns.values[i+1]:
                         self.simple_labels_by_tmpt[ix] = self.labels16s_dict[int(ix.split('-')[0])]
                     else:
                         self.simple_labels_by_tmpt[ix] = 0

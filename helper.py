@@ -208,6 +208,44 @@ def get_percentiles(vals, interval = 90, digits = 4, coef = False):
         CI = (np.round((sort[ix_lower]),digits), np.round((sort[ix_upper]),digits))
     return CI
 
+def vars(data, labels=None, normalize_data = False):
+    if normalize_data:
+        data = self.normalize(data)
+    # labels = self.targets_dict[dat_type]
+    if labels:
+        cleared = data[np.array(labels) == 'Cleared']
+        recur = data[np.array(labels) == 'Recur']
+        within_class_vars = [np.var(cleared, 0), np.var(recur, 0)]
+        class_means = [np.mean(cleared, 0), np.mean(cleared, 0)]
+
+        total_mean = np.mean(data, 0)
+        between_class_vars = 0
+        for i in range(2):
+            between_class_vars += (class_means[i] - total_mean)**2
+    
+    else:
+        within_class_vars = None
+        between_class_vars = None
+
+    total_vars = np.std(data, 0)/np.mean(data,0)
+    vardict = {'within':within_class_vars,'between':between_class_vars,'total':total_vars}
+    return vardict
+
+def filter_vars(data, labels=None, perc=30, var_type = 'total', normalize_data = False):
+    if labels == None:
+        assert(var_type == 'total')
+    vardict = vars(data, labels, normalize_data)
+    variances = vardict[var_type]
+    variances = variances.replace(np.nan,0)
+    
+    rm2 = set(np.where(variances > np.percentile(variances, perc))[0])
+
+    temp = data.iloc[:,list(rm2)]
+    # import pdb; pdb.set_trace()
+    if len(np.where(np.sum(temp,0)==0)[0]) > 0:
+        import pdb; pdb.set_trace()
+    return data.iloc[:,list(rm2)]
+
 
 # def leave_one_out_cv(data, labels, num_folds=None):
 

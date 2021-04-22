@@ -83,7 +83,7 @@ if __name__ == "__main__":
         x_tr2, x_ts2 = x.iloc[tr_in, :], x.iloc[ts_in,:]
         y_tr2, y_ts2 = y[tr_in], y[ts_in]
         
-        ix_cv = leave_one_out_cv(x_tr2, y_tr2)
+        ixs_cv = leave_one_out_cv(x_tr2, y_tr2)
         rf_grid = GridSearchCV(estimator = rf, param_grid = search_grid, \
                                     cv = ixs_cv, verbose=2, n_jobs = -1, \
                             scoring ='balanced_accuracy')
