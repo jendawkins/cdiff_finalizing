@@ -74,29 +74,38 @@ if __name__ == "__main__":
     x_tr, x_ts = x.iloc[tr,:], x.iloc[ts,:]
     y_tr, y_ts = y[tr], y[ts]
     ixs_tr = leave_one_out_cv(x_tr, y_tr)
-    rf_grid = GridSearchCV(estimator = rf, param_grid = search_grid, \
-                                cv = ixs_tr, verbose=2, n_jobs = -1, \
-                        scoring ='balanced_accuracy')
-    rf_grid.fit(x_tr, y_tr)
-    
-    pred_probs = rf_grid.predict_proba(x_ts)
-    pred = rf_grid.predict(x_ts)
-    probs = pred_probs.squeeze()[1]
-    results['prob'] = probs
-    results['pred'] = pred
-    results['true'] = y_ts
-    results['model'] = rf_grid
-    results['best_params'] = rf_grid.best_params_
+    probs_vec = []
+    true_vec = []
+    best_params = []
+    pred_vec = []
+    for ix_in in ixs_tr:
+        tr_in, ts_in = ix_in
+        x_tr2, x_ts2 = x.iloc[tr_in, :], x.iloc[ts_in,:]
+        y_tr2, y_ts2 = y[tr_in], y[ts_in]
+        
+        ix_cv = leave_one_out_cv(x_tr2, y_tr2)
+        rf_grid = GridSearchCV(estimator = rf, param_grid = search_grid, \
+                                    cv = ixs_cv, verbose=2, n_jobs = -1, \
+                            scoring ='balanced_accuracy')
+        rf_grid.fit(x_tr2, y_tr2)
+        
+        pred_probs = rf_grid.predict_proba(x_ts2)
+        pred = rf_grid.predict(x_ts2)
+        probs = pred_probs.squeeze()[1]
+        probs_vec.append(float(probs))
+        true_vec.append(int(y_tr2.squeeze()))
+        best_params.append(rf_grid.best_params_)
+        pred_vec.append(int(pred.squeeze()))
+    results['probs'] = probs_vec
+    results['pred'] = pred_vec
+    results['true'] = true_vec
+    results['best_params'] = best_params
+    results['metrics'] = get_metrics(pred_vec, true_vec, probs)
 
-    with open(path_out + 'seed' + str(args.seed) + 'ix' + str(args.ix) + '.pkl','wb') as f:
+    with open(path_out + '/seed' + str(args.seed) + 'ix' + str(args.ix) + '.pkl','wb') as f:
         pickle.dump(results, f)
     
-    f2 = open(path_out + "res_file" +str(args.seed) + ".txt","a")
-    f2.write(str(args.ix) + ' True: ' + str(y_ts)+ ' Predict: ' + str(pred) + ' Probs: ' + str(pred_probs.squeeze()[1]) + '\n')
+    f2 = open(path_out + "/res_file" +str(args.seed) + ".txt","a")
+    f2.write(str(args.ix) + ' AUC: ' + str(results['metrics']['auc'])+ '\n')
     f2.close()
 
-    if i > 1:
-        auc_score = sklearn.metrics.roc_auc_score(true, probs)
-        f2 = open(path_out + "res_file" +str(args.seed) + ".txt","a")
-        f2.write(str(auc_score) + '\n')
-        f2.close()

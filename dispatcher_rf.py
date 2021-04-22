@@ -28,8 +28,10 @@ my_str = '''
 
 # Please make a copy of this script for your own modifications
 
-#BSUB -q rerunnable
+#BSUB -q big-multi
 #BSUB -n 12
+#BSUB -M 10000
+#BSUB -R rusage[mem=10000]
 
 # Some important variables to check (Can be removed later)
 echo '---PROCESS RESOURCE LIMITS---'
