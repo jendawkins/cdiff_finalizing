@@ -26,7 +26,7 @@ if __name__ == "__main__":
     parser.add_argument("-input", "--input", help='title', type=str)
     parser.add_argument("-output", "--output", help='title', type=str)
     parser.add_argument("-seed", "--seed", help='title', type=int)
-    parser.add_argument("-ix", "--ix", help='title', type=int)
+    parser.add_argument("-ix", "--ix", help='title', type=int, nargs = '+')
     args = parser.parse_args()
 
     path_out = args.output
@@ -36,14 +36,14 @@ if __name__ == "__main__":
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
 
-    paths = os.listdir('inputs/in/')
+    paths = os.listdir('inputs/in2/')
     dat_dict = {}
     for path in paths:
         if 'DS' in path:
             continue
-        with open('inputs/in/' + path + '/x.pkl','rb') as f:
+        with open('inputs/in2/' + path + '/x.pkl','rb') as f:
             x = pkl.load(f)
-        with open('inputs/in/' + path + '/y.pkl','rb') as f:
+        with open('inputs/in2/' + path + '/y.pkl','rb') as f:
             y = pkl.load(f)
         dat_dict[path] = (x,y)
 
@@ -69,43 +69,36 @@ if __name__ == "__main__":
 
     results= {}
     # for i,ix in enumerate(ixs):
-    ix = ixs[args.ix]
+    ix = ixs[args.ix[0]]
     tr, ts = ix
     x_tr, x_ts = x.iloc[tr,:], x.iloc[ts,:]
     y_tr, y_ts = y[tr], y[ts]
     ixs_tr = leave_one_out_cv(x_tr, y_tr)
-    probs_vec = []
-    true_vec = []
-    best_params = []
-    pred_vec = []
-    for ix_in in ixs_tr:
-        tr_in, ts_in = ix_in
-        x_tr2, x_ts2 = x.iloc[tr_in, :], x.iloc[ts_in,:]
-        y_tr2, y_ts2 = y[tr_in], y[ts_in]
-        
-        ixs_cv = leave_one_out_cv(x_tr2, y_tr2)
-        rf_grid = GridSearchCV(estimator = rf, param_grid = search_grid, \
-                                    cv = ixs_cv, verbose=2, n_jobs = -1, \
-                            scoring ='balanced_accuracy')
-        rf_grid.fit(x_tr2, y_tr2)
-        
-        pred_probs = rf_grid.predict_proba(x_ts2)
-        pred = rf_grid.predict(x_ts2)
-        probs = pred_probs.squeeze()[1]
-        probs_vec.append(float(probs))
-        true_vec.append(int(y_tr2.squeeze()))
-        best_params.append(rf_grid.best_params_)
-        pred_vec.append(int(pred.squeeze()))
-    results['probs'] = probs_vec
-    results['pred'] = pred_vec
-    results['true'] = true_vec
-    results['best_params'] = best_params
-    results['metrics'] = get_metrics(pred_vec, true_vec, probs)
 
-    with open(path_out + '/seed' + str(args.seed) + 'ix' + str(args.ix) + '.pkl','wb') as f:
+    ix_in = ixs_tr[args.ix[1]]
+
+    tr_in, ts_in = ix_in
+    x_tr2, x_ts2 = x.iloc[tr_in, :], x.iloc[ts_in,:]
+    y_tr2, y_ts2 = y[tr_in], y[ts_in]
+
+    ixs_cv = leave_one_out_cv(x_tr2, y_tr2)
+    rf_grid = GridSearchCV(estimator = rf, param_grid = search_grid, \
+                                cv = ixs_cv, n_jobs = -1, \
+                        scoring ='balanced_accuracy')
+    rf_grid.fit(x_tr2, y_tr2)
+
+    pred_probs = rf_grid.predict_proba(x_ts2)
+    pred = rf_grid.predict(x_ts2)
+    probs = pred_probs.squeeze()[1]
+
+    results['probs'] = pred_probs
+    results['pred'] = pred
+    results['true'] = y_tr2
+    results['best_params'] = rf_grid.best_params_
+    with open(path_out + '/seed' + str(args.seed) + 'ix_out' + str(args.ix[0]) + 'ix_in' + str(args.ix[1]) + '.pkl','wb') as f:
         pickle.dump(results, f)
     
     f2 = open(path_out + "/res_file" +str(args.seed) + ".txt","a")
-    f2.write(str(args.ix) + ' AUC: ' + str(results['metrics']['auc'])+ '\n')
+    f2.write(str(args.ix) + ', pred: ' + str(pred_probs) + ', true: ' + str(y_tr) + '\n')
     f2.close()
 

@@ -65,7 +65,7 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./rf_main.py -input {0} -output {1} -seed {2} -ix {3}
+python3 ./rf_main.py -input {0} -output {1} -seed {2} -ix {3} {4} 
 '''
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--o", help = "outpath", type = str)
@@ -82,10 +82,11 @@ if not os.path.isdir(out_path):
 
 for seed in range(0,50):
     # for model in ['LR','RF']:
-    for input_path in ['week_one_ALL', 'week_one_metabs','week_one_16s','week_one_bileacids']:
+    for input_path in ['metabs','16s','bile_acids']:
         for ix in range(49):
-            fname = 'cdiff_rf.lsf'
-            f = open(fname, 'w')
-            f.write(my_str.format(input_path, out_path, seed, ix))
-            f.close()
-            os.system('bsub < {}'.format(fname))
+            for ix2 in range(48):
+                fname = 'cdiff_rf.lsf'
+                f = open(fname, 'w')
+                f.write(my_str.format(input_path, out_path, seed, ix, ix2))
+                f.close()
+                os.system('bsub < {}'.format(fname))
