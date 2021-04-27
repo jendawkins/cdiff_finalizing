@@ -41,9 +41,9 @@ if __name__ == "__main__":
     for path in paths:
         if 'DS' in path:
             continue
-        with open('inputs/in2/' + path + '/x.pkl','rb') as f:
+        with open('inputs/in/' + path + '/x.pkl','rb') as f:
             x = pkl.load(f)
-        with open('inputs/in2/' + path + '/y.pkl','rb') as f:
+        with open('inputs/in/' + path + '/y.pkl','rb') as f:
             y = pkl.load(f)
         dat_dict[path] = (x,y)
 
@@ -93,7 +93,7 @@ if __name__ == "__main__":
 
     results['probs'] = pred_probs
     results['pred'] = pred
-    results['true'] = y_tr2
+    results['true'] = y_ts2
     results['best_params'] = rf_grid.best_params_
     with open(path_out + '/seed' + str(args.seed) + 'ix_out' + str(args.ix[0]) + 'ix_in' + str(args.ix[1]) + '.pkl','wb') as f:
         pickle.dump(results, f)
