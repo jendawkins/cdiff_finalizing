@@ -63,7 +63,7 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./svm_main.py -output {0} -input {2} -seed {3} -ix {4} 
+python3 ./svm_main.py -output {0} -input {1} -seed {2} -ix {3} 
 '''
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--o", help = "outpath", type = str)
