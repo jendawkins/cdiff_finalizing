@@ -23,9 +23,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     mb = basic_ml()
     if not args.i:
-        path = 'inputs/in2/week_one_metabs/'
+        path = 'inputs/in/week_one_metabs/'
     else:
-        path = 'inputs/in2/' + args.i + '/'
+        path = 'inputs/in/' + args.i + '/'
     with open(path + 'x.pkl','rb') as f:
         x = pkl.load(f)
     with open(path + 'y.pkl','rb') as f:
