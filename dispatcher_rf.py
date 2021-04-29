@@ -81,9 +81,14 @@ if not os.path.isdir(out_path):
 
 for seed in range(0,50):
     # for model in ['LR','RF']:
-    for input_path in ['week_one_metabs','week_one_16s','week_one_bileacids']:
+    for input_path in ['metabs','16s','bile_acids']:
         for ix in range(49):
             for ix2 in range(48):
+                path_out = out_path + '/' + input_path + '/'
+                if os.path.exists(path_out + '/seed' + str(args.seed) +
+                                  'ix_out' + str(args.ix[0]) + 'ix_in' + str(args.ix[1]) + '.pkl'):
+                    continue
+
                 fname = 'cdiff_rf.lsf'
                 f = open(fname, 'w')
                 f.write(my_str.format(input_path, out_path, seed, ix, ix2))

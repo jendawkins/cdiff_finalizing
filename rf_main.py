@@ -36,7 +36,7 @@ if __name__ == "__main__":
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
 
-    paths = os.listdir('inputs/in2/')
+    paths = os.listdir('inputs/in/')
     dat_dict = {}
     for path in paths:
         if 'DS' in path:
@@ -51,21 +51,13 @@ if __name__ == "__main__":
     y = (np.array(y)=='Recur').astype('float')
     ixs = leave_one_out_cv(x,y)
 
-    n_estimators = [int(x) for x in np.arange(5,50,5)]
-    max_features = ['sqrt']
-    max_depth = [int(x) for x in np.arange(2,20,1)]
-    min_samples_split = [2,4,5]
-    min_samples_leaf = [1,3,4]
-    bootstrap = [False]
+    n_estimators = [int(x) for x in np.arange(5,100,5)]
+    min_samples_split = [int(x) for x in np.arange(2,20,1)]
 
     search_grid = {'n_estimators': n_estimators,
-                'max_features': max_features,
-                'max_depth': max_depth,
-                'min_samples_split': min_samples_split,
-                'min_samples_leaf': min_samples_leaf,
-                'bootstrap': bootstrap}
+                'min_samples_split': min_samples_split}
 
-    rf = RandomForestClassifier(random_state = args.seed, class_weight = 'balanced')
+    rf = RandomForestClassifier(random_state = args.seed, class_weight = 'balanced', bootstrap=True, max_features = None)
 
     results= {}
     # for i,ix in enumerate(ixs):
