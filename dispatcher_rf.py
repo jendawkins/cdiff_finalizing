@@ -85,8 +85,8 @@ for seed in range(0,50):
         for ix in range(49):
             for ix2 in range(48):
                 path_out = out_path + '/' + input_path + '/'
-                if os.path.exists(path_out + '/seed' + str(args.seed) +
-                                  'ix_out' + str(args.ix[0]) + 'ix_in' + str(args.ix[1]) + '.pkl'):
+                if os.path.exists(path_out + '/seed' + str(seed) +
+                                  'ix_out' + str(ix) + 'ix_in' + str(ix2) + '.pkl'):
                     continue
 
                 fname = 'cdiff_rf.lsf'
