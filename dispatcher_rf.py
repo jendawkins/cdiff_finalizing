@@ -28,7 +28,7 @@ my_str = '''
 
 # Please make a copy of this script for your own modifications
 
-#BSUB -q rerunnable
+#BSUB -q short
 #BSUB -n 12
 
 
