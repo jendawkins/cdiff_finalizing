@@ -81,7 +81,7 @@ if not os.path.isdir(out_path):
 
 for seed in range(0,50):
     # for model in ['LR','RF']:
-    for input_path in ['metabs','16s','bile_acids']:
+    for input_path in ['metabs','16s','bile_acids','joint']:
         for ix in range(49):
             for ix2 in range(48):
                 path_out = out_path + '/' + input_path + '/'
