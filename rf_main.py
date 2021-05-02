@@ -22,6 +22,7 @@ from sklearn.model_selection import GridSearchCV
 import argparse
 
 if __name__ == "__main__":
+    start = time.time()
     parser = argparse.ArgumentParser()
     parser.add_argument("-input", "--input", help='title', type=str)
     parser.add_argument("-output", "--output", help='title', type=str)
@@ -89,8 +90,9 @@ if __name__ == "__main__":
     results['best_params'] = rf_grid.best_params_
     with open(path_out + '/seed' + str(args.seed) + 'ix_out' + str(args.ix[0]) + 'ix_in' + str(args.ix[1]) + '.pkl','wb') as f:
         pickle.dump(results, f)
-    
+
+    time_out = time.time() - start
     f2 = open(path_out + "/res_file" +str(args.seed) + ".txt","a")
-    f2.write(str(args.ix) + ', pred: ' + str(pred_probs) + ', true: ' + str(y_tr) + '\n')
+    f2.write(str(args.ix) + ', pred: ' + str(pred_probs[:,1].squeeze()) + ', true: ' + str(y_ts2) + ', time: '+ str(time_out) + '\n')
     f2.close()
 
