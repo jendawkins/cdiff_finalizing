@@ -89,7 +89,7 @@ for seed in range(0,50):
             else:
                 fname = 'cdiff_lr.lsf'
                 f = open(fname, 'w')
-                f.write(my_str.format(seed, param, ix, out_path, input_path, model))
+                f.write(my_str.format(seed, param, ix, args.o, input_path, model))
                 f.close()
                 os.system('bsub < {}'.format(fname))
 
