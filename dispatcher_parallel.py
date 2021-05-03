@@ -29,7 +29,6 @@ my_str = '''
 # Please make a copy of this script for your own modifications
 
 #BSUB -q rerunnable
-#BSUB -n 12
 
 # Some important variables to check (Can be removed later)
 echo '---PROCESS RESOURCE LIMITS---'
@@ -63,29 +62,28 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./main_parallel.py -seed {0} -param {1} -ix {2} -o {3} -i {4} -model {5} 
+python3 ./main_parallel.py -seed {0} -param {1} -ix {2} -o {3} -i {4}
 '''
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--o", help = "outpath", type = str)
 args = parser.parse_args()
-out_path = args.o
 
 if not args.o:
     print('Specify out dir')
     sys.exit(1)
 
-if not os.path.isdir(out_path):
-    os.mkdir(out_path)
+if not os.path.isdir(args.o):
+    os.mkdir(args.o)
 
 model = 'LR'
 param = 'auc_bootstrap'
 
 for seed in range(0,50):
     # for model in ['LR','RF']:
-    for input_path in ['week_one_metabs','week_one_16s','week_one_ALL']:
+    for input_path in ['metabs','16s','bile_acids','joint']:
     # for input_path in ['week_one_ALL', 'week_one_metabs','week_one_16s','week_one_bileacids']:
         for ix in range(49):
-            path_out = model + '_outputs/' + input_path + '/'
+            path_out = args.o + '/' + input_path + '/'
             if os.path.exists(path_out + "_" + param + "_" + str(seed) + ".pkl"):
                 continue
             else:
