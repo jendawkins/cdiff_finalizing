@@ -76,19 +76,19 @@ if not args.o:
 if not os.path.isdir(out_path):
     os.mkdir(out_path)
 
-
-for seed in range(0,50):
+seed = 0
+# for seed in range(0,50):
     # for model in ['LR','RF']:
-    for input_path in ['metabs','16s','bile_acids','joint']:
-        for ix in range(49):
-            for ix2 in range(48):
-                path_out = out_path + '/' + input_path + '/'
-                if os.path.exists(path_out + '/seed' + str(seed) +
-                                  'ix_out' + str(ix) + 'ix_in' + str(ix2) + '.pkl'):
-                    continue
+for input_path in ['metabs','16s','bile_acids','joint']:
+    for ix in range(49):
+        for ix2 in range(48):
+            path_out = out_path + '/' + input_path + '/'
+            if os.path.exists(path_out + '/seed' + str(seed) +
+                              'ix_out' + str(ix) + 'ix_in' + str(ix2) + '.pkl'):
+                continue
 
-                fname = 'cdiff_rf.lsf'
-                f = open(fname, 'w')
-                f.write(my_str.format(input_path, out_path, seed, ix, ix2))
-                f.close()
-                os.system('bsub < {}'.format(fname))
+            fname = 'cdiff_rf.lsf'
+            f = open(fname, 'w')
+            f.write(my_str.format(input_path, out_path, seed, ix, ix2))
+            f.close()
+            os.system('bsub < {}'.format(fname))
