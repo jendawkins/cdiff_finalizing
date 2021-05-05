@@ -52,13 +52,15 @@ if __name__ == "__main__":
     y = (np.array(y)=='Recur').astype('float')
     ixs = leave_one_out_cv(x,y)
 
-    n_estimators = [int(x) for x in np.arange(5,100,5)]
-    min_samples_split = [int(x) for x in np.arange(2,20,1)]
+    n_estimators = [int(x) for x in np.arange(10,50,5)]
+    min_samples_split = [int(x) for x in np.arange(5,15,1)]
 
     search_grid = {'n_estimators': n_estimators,
-                'min_samples_split': min_samples_split}
+                'min_samples_split': min_samples_split,
+                   'max_depth': [10,20,None],
+                   'min_samples_leaf': [1,2,5]}
 
-    rf = RandomForestClassifier(random_state = args.seed, class_weight = 'balanced', bootstrap=True, max_features = None)
+    rf = RandomForestClassifier(random_state = args.seed, class_weight = 'balanced', bootstrap=True, max_features = None, oob_score = True)
 
     results= {}
     # for i,ix in enumerate(ixs):
@@ -88,6 +90,7 @@ if __name__ == "__main__":
     results['pred'] = pred
     results['true'] = y_ts2
     results['best_params'] = rf_grid.best_params_
+    results['model'] = rf_grid
     with open(path_out + '/seed' + str(args.seed) + 'ix_out' + str(args.ix[0]) + 'ix_in' + str(args.ix[1]) + '.pkl','wb') as f:
         pickle.dump(results, f)
 
