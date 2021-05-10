@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--i", help = "inpath", type = str)
     args = parser.parse_args()
     mb = basic_ml()
-    path = 'inputs/in/' + args.i + '/'
+    path = 'inputs/in_25/' + args.i + '/'
     with open(path + 'x.pkl','rb') as f:
         x = pkl.load(f)
     with open(path + 'y.pkl','rb') as f:
