@@ -80,7 +80,7 @@ param = 'auc_bootstrap'
 
 for seed in range(0,50):
     # for model in ['LR','RF']:
-    for input_path in ['joint']:
+    for input_path in ['bile_acids']:
     # for input_path in ['week_one_ALL', 'week_one_metabs','week_one_16s','week_one_bileacids']:
         for ix in range(49):
             path_out = args.o + '/' + input_path + '/'
