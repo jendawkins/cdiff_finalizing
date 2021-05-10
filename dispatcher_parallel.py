@@ -76,20 +76,31 @@ if not os.path.isdir(args.o):
     os.mkdir(args.o)
 
 model = 'LR'
-param = 'auc_bootstrap'
+param = 'coef_bootstrap'
 
 for seed in range(0,50):
     # for model in ['LR','RF']:
     for input_path in ['bile_acids', 'metabs', '16s', 'joint']:
     # for input_path in ['week_one_ALL', 'week_one_metabs','week_one_16s','week_one_bileacids']:
-        for ix in range(49):
+        if param == 'auc_bootstrap':
+            for ix in range(49):
+                path_out = args.o + '/' + input_path + '/'
+                if os.path.exists(path_out + "_" + param + "_" + str(seed) + "_" + str(args.ix) + ".pkl"):
+                    continue
+                else:
+                    fname = 'cdiff_lr.lsf'
+                    f = open(fname, 'w')
+                    f.write(my_str.format(seed, param, ix, args.o, input_path, model))
+                    f.close()
+                    os.system('bsub < {}'.format(fname))
+        else:
             path_out = args.o + '/' + input_path + '/'
             if os.path.exists(path_out + "_" + param + "_" + str(seed) + ".pkl"):
                 continue
             else:
                 fname = 'cdiff_lr.lsf'
                 f = open(fname, 'w')
-                f.write(my_str.format(seed, param, ix, args.o, input_path, model))
+                f.write(my_str.format(seed, param, 0, args.o, input_path, model))
                 f.close()
                 os.system('bsub < {}'.format(fname))
 

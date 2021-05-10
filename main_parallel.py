@@ -20,10 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--i", help = "inpath", type = str)
     args = parser.parse_args()
     mb = basic_ml()
-    if not args.i:
-        path = 'inputs/in/week_one_metabs/'
-    else:
-        path = 'inputs/in/' + args.i + '/'
+    path = 'inputs/in/' + args.i + '/'
     with open(path + 'x.pkl','rb') as f:
         x = pkl.load(f)
     with open(path + 'y.pkl','rb') as f:
@@ -53,13 +50,16 @@ if __name__ == "__main__":
         
 
     if args.param == 'coef_bootstrap' or args.param == 'auc':
-        ixs = leave_one_out_cv(x,y)
-        train_index, test_index = ixs[args.ix[0]]
-        X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
-        y_train, y_test = y[train_index], y[test_index]
-        res_dict = mb.nest_cv_func(model, X_train, y_train, optim_param = 'auc', plot_lambdas=False, \
-            learn_var = lv,feature_grid = feature_grid)
-        final_res_dict = res_dict
+        final_res_dict = mb.nested_cv_func(model, x, y, optim_param='auc', plot_lambdas=False, learn_var=lv, \
+                                           feature_grid=feature_grid)
+
+        # ixs = leave_one_out_cv(x,y)
+        # train_index, test_index = ixs[args.ix[0]]
+        # X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
+        # y_train, y_test = y[train_index], y[test_index]
+        # res_dict = mb.nest_cv_func(model, X_train, y_train, optim_param = 'auc', plot_lambdas=False, \
+        #     learn_var = lv,feature_grid = feature_grid)
+        # final_res_dict = res_dict
 
     if args.param == 'auc_bootstrap':
         ixs = leave_one_out_cv(x,y)
