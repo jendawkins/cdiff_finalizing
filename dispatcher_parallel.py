@@ -86,7 +86,7 @@ for param in ['coef_bootstrap', 'auc_bootstrap']:
             if param == 'auc_bootstrap':
                 for ix in range(49):
                     path_out = args.o + '/' + input_path + '/'
-                    if os.path.exists(path_out + "_" + param + "_" + str(seed) + "_" + str(args.ix) + ".pkl"):
+                    if os.path.exists(path_out + "_" + param + "_" + str(seed) + "_" + str(ix) + ".pkl"):
                         continue
                     else:
                         fname = 'cdiff_lr.lsf'
