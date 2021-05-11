@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', random_state = seed, solver = 'liblinear')
     lv = 'C'
-    feature_grid = np.logspace(-3,3,100)
+    feature_grid = np.logspace(-7,3,100)
         
 
     if args.param == 'coef_bootstrap' or args.param == 'auc':
