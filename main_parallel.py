@@ -18,6 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("-ix", "--ix", help = "index for splits", type = int)
     parser.add_argument("-o", "--o", help = "outpath", type = str)
     parser.add_argument("-i", "--i", help = "inpath", type = str)
+    parser.add_argument("-model", "--model", help="inpath", type=str)
     args = parser.parse_args()
     mb = basic_ml()
     path = 'inputs/in_15/' + args.i + '/'
@@ -33,7 +34,7 @@ if __name__ == "__main__":
 
     coef_names = x.columns.values
 
-    path_out = args.o + '/' + args.i + '/'
+    path_out = args.o + '/' + args.model + '_' + args.i + '/'
 
     if not os.path.isdir(path_out):
         os.mkdir(path_out)
@@ -47,11 +48,17 @@ if __name__ == "__main__":
     model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', random_state = seed, solver = 'liblinear')
     lv = 'C'
     feature_grid = np.logspace(-7,3,100)
+
+    if args.model == 'RF':
+        model_2 = RandomForestClassifier(class_weight='balanced', n_estimators=100,
+                                         min_samples_split=2, max_features=None, oob_score=1, bootstrap=True)
+    else:
+        model_2 = None
         
 
     if args.param == 'coef_bootstrap' or args.param == 'auc':
         final_res_dict = mb.nested_cv_func(model, x, y, optim_param='auc', plot_lambdas=False, learn_var=lv, \
-                                           feature_grid=feature_grid)
+                                           feature_grid=feature_grid, model_2 = model_2)
 
         # ixs = leave_one_out_cv(x,y)
         # train_index, test_index = ixs[args.ix[0]]
@@ -67,7 +74,7 @@ if __name__ == "__main__":
         X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
         final_res_dict = mb.nested_cv_func(model, X_train, y_train,optim_param = 'auc', plot_lambdas=False, learn_var = lv, \
-            feature_grid = feature_grid)
+            feature_grid = feature_grid, model_2 = model_2)
     
     if 'auc_bootstrap' in args.param:
         with open(path_out + "_" + args.param+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
@@ -78,7 +85,7 @@ if __name__ == "__main__":
     
     end = time.time()
     passed = np.round((end - start)/60, 3)
-    f2 = open(args.o + '/' + args.i + ".txt","a")
+    f2 = open(args.o + '/' + args.model + '_' + args.i + ".txt","a")
     f2.write('Seed ' + str(args.seed) + ', index ' + str(args.ix) + ', AUC: ' + str(final_res_dict['metrics']['auc']) \
              + ' in ' + str(passed) + ' minutes' + '\n')
     f2.close()

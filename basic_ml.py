@@ -4,6 +4,7 @@ from datetime import datetime
 import sklearn
 import time
 import pickle as pkl
+import argparse
 
 class basic_ml():
     def __init__(self):
@@ -43,7 +44,6 @@ class basic_ml():
         train_index_in, test_index_in = ix_in
         X_train_in, X_test_in = X[train_index_in, :], X[test_index_in, :]
         y_train_in, y_test_in = y[train_index_in], y[test_index_in]
-
         tmpts_train_in = tmpts[train_index_in]
         coefs_all_in = []
         samp_weights = get_class_weights(y_train_in, tmpts_train_in)
@@ -133,11 +133,8 @@ class basic_ml():
             
             ts_true, ts_pred, ts_probs, loss_vec, clf, y_probs_tr = self.train_func(model, ix, X, y, tmpts, \
                 ts_true, ts_pred, ts_probs, loss_vec, var_to_learn = var_to_learn, test_param = test_param)
-            
-            try:
-                coefs_all[ic] = clf.coef_
-            except:
-                continue
+
+
             model_all[ic] = clf
 
             print('split ' + str(ic) + ' complete')
@@ -148,8 +145,6 @@ class basic_ml():
         # print(ts_probs)
 
         final_res_dict['metrics'] = ret_dict
-        if len(coefs_all) >0:
-            final_res_dict['coef'] = coefs_all
         final_res_dict['model'] = model_all
         return final_res_dict
 
@@ -238,10 +233,10 @@ class basic_ml():
 
 
 
-    def nested_cv_func(self, model, x, targets, feature_grid = np.logspace(-3, 3, 100), \
-        split_outer = leave_one_out_cv, split_inner = leave_one_out_cv, learn_var = 'C', nzero_thresh = 10, \
-            name = '', folds = None, optim_param = 'auc', plot_lambdas = False, \
-                stop_lambdas = False, smooth_auc = True, ttype = 'week_one'):
+    def nested_cv_func(self, model, x, targets, feature_grid = np.logspace(-3, 3, 100),
+        split_outer = leave_one_out_cv, split_inner = leave_one_out_cv, learn_var = 'C', nzero_thresh = 10,
+            name = '', folds = None, optim_param = 'auc', plot_lambdas = False,
+                stop_lambdas = False, smooth_auc = True, ttype = 'week_one', model_2 = None):
         seed, X, y = self.starter(model, x, targets)
         final_res_dict = {}
 
@@ -267,7 +262,7 @@ class basic_ml():
             y_train, y_test = y[train_index], y[test_index]
 
             x_train_to_split = x.iloc[train_index,:]
-            ixs_inner = split_inner(x_train_to_split, y_train, folds = folds, ddtype = ttype) 
+            ixs_inner = split_inner(x_train_to_split, y_train, folds = folds, ddtype = ttype)
             lambdict = {}
             start = time.time()
             train_auc_dict = {}
@@ -283,8 +278,8 @@ class basic_ml():
                 ts_probs_in = []
                 train_auc = []
                 for ic_in,ix_in in enumerate(ixs_inner):
-                    ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, clf, y_probs_tr = self.train_func(model, \
-                        ix_in, X_train, y_train, tmpts, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, \
+                    ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, clf, y_probs_tr = self.train_func(model,
+                        ix_in, X_train, y_train, tmpts, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in,
                             test_param = lamb, var_to_learn = learn_var)
 
                     if 'coef_' in clf.get_params().keys():
@@ -325,23 +320,45 @@ class basic_ml():
 
             if plot_lambdas:
                 fig2, ax2 = plot_lambdas_func(lambdict, optim_param, offset, ma, best_lambda)
+                fig2.show()
 
-            ts_true, ts_pred, ts_probs, loss_vec, clf, y_probs_tr = self.train_func(model, ix, X, y, tmpts, \
-                ts_true, ts_pred, ts_probs, loss_vec, test_param = best_lambda, var_to_learn = learn_var)
-            
+            if model_2 is not None:
+                temp = self.learner(model, X_train, y_train, test_param = best_lambda, var_to_learn = learn_var)
+                coefs = temp.coef_
+                ix_keep = np.where(coefs.squeeze() > 0)[0]
+                X_filt = X[:, ix_keep]
+                print('# Kept: ' + str(X_filt.shape[1]))
+                if len(ix_keep) < 50:
+                    print(x.columns.values[ix_keep])
+                if X_filt.shape[1] == 0:
+                    X_filt = X.copy()
+                    print('ix ' + str(test_index) + ' no coefs')
+                ts_true, ts_pred, ts_probs, loss_vec, clf, y_probs_tr = self.train_func(model_2, ix, X_filt, y, tmpts,
+                    ts_true, ts_pred, ts_probs, loss_vec, test_param = None, var_to_learn = None)
+            else:
+                ts_true, ts_pred, ts_probs, loss_vec, clf, y_probs_tr = self.train_func(model, ix, X, y, tmpts,
+                                                                                        ts_true, ts_pred, ts_probs,
+                                                                                        loss_vec,
+                                                                                        test_param=best_lambda,
+                                                                                        var_to_learn=learn_var)
+
             if 'coef_' in clf.get_params().keys():
                 coefs_all[ic] = clf.coef_
             model_all[ic] = clf
 
             # print('split ' + str(ic) + ' complete')
             best_lambdas.append(best_lambda)
-        
+
             best_auc_vec.append(best_param)
             best_auc_vec_ma.append(best_param_ma)
 
             training_probs.append((y[ix[0]], y_probs_tr))
 
             auc_score_tr.append(sklearn.metrics.roc_auc_score(y_train, y_probs_tr[:,1]))
+            print('ic: ' + str(ic))
+            print('True: ' + str(ts_true))
+            print('Probs: ' + str(ts_probs))
+            print('')
 
         ret_dict = get_metrics(ts_pred, ts_true, ts_probs)
 
@@ -354,6 +371,8 @@ class basic_ml():
         final_res_dict['train_auc'] = auc_score_tr
         final_res_dict['train_auc_inner'] = train_auc_dict
         return final_res_dict
+
+
 
     def double_nest(self, model, x, targets, feature_grid = np.logspace(-3, 3, 100), \
         split_outer = leave_one_out_cv, split_inner = leave_one_out_cv, learn_var = 'C', nzero_thresh = 10, \
@@ -392,18 +411,37 @@ class basic_ml():
         return final_res_dict
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-in_dat", "--in_dat", type=str)
+    args = parser.parse_args()
+    if not args.in_dat:
+        args.in_dat = 'metabs'
+
     mb = basic_ml()
-    paths = ['week_one_ALL/', 'week_one_16s/','week_one_metabs/']
-    in_file = 'x.pkl'
+    paths = os.listdir('inputs/in_15/')
     dat_dict = {}
     for path in paths:
-        with open('inputs/' + path + in_file,'rb') as f:
+        if 'DS' in path:
+            continue
+        with open('inputs/in_15/' + path + '/x.pkl', 'rb') as f:
             x = pkl.load(f)
-        with open('inputs/' + path + 'y.pkl','rb') as f:
+        with open('inputs/in_15/' + path + '/y.pkl', 'rb') as f:
             y = pkl.load(f)
-        dat_dict[path[:-1]] = (x,y)
+        dat_dict[path] = (x, y)
 
-    x, y = dat_dict['week_one_ALL']
-    model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', \
+    x, y = dat_dict[args.in_dat]
+    model = LogisticRegression(class_weight = 'balanced', penalty = 'l1',
                                random_state = 0, solver = 'liblinear')
-    out_dict = mb.nested_cv_func(model, x, y, dtype = 'metabolites', optim_param = 'auc')
+    model_2 = RandomForestClassifier(class_weight = 'balanced', n_estimators = 100,
+                                     min_samples_split= 2, max_features = None, oob_score = 1, bootstrap = True)
+
+    # model_2 = RandomForestClassifier(class_weight='balanced', n_estimators=100)
+
+    feature_grid = np.logspace(-3,3,100)
+    lv = 'C'
+    final_res_dict = mb.nested_cv_func(model, x, y, optim_param='auc', plot_lambdas=False, learn_var=lv,
+                                       feature_grid=feature_grid, model_2 = model_2)
+
+    f2 = open("reg_RF.txt", "a")
+    f2.write(args.in_dat + ', AUC: ' + str(final_res_dict['metrics']['auc']) + '\n')
+    f2.close()
