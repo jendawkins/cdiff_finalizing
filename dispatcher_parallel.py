@@ -78,7 +78,7 @@ if not os.path.isdir(args.o):
 model = 'LR'
 # param = 'coef_bootstrap'
 
-for params in ['coef_bootstrap', 'auc_bootstrap']:
+for param in ['coef_bootstrap', 'auc_bootstrap']:
     for seed in range(0,50):
         # for model in ['LR','RF']:
         for input_path in ['bile_acids', 'metabs', '16s', 'joint']:
