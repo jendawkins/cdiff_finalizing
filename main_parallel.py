@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument("-model", "--model", help="inpath", type=str)
     args = parser.parse_args()
     mb = basic_ml()
-    path = 'inputs/in_15/' + args.i + '/'
+    path = 'inputs/in_25/' + args.i + '/'
     with open(path + 'x.pkl','rb') as f:
         x = pkl.load(f)
     with open(path + 'y.pkl','rb') as f:
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', random_state = seed, solver = 'liblinear')
     lv = 'C'
-    feature_grid = np.logspace(-7,3,100)
+    feature_grid = np.logspace(-7,3,200)
 
     if args.model == 'RF':
         model_2 = RandomForestClassifier(class_weight='balanced', n_estimators=100,
