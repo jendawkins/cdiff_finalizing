@@ -47,9 +47,9 @@ if __name__ == "__main__":
         os.mkdir(path_out)
 
     lv = 'C'
-    feature_grid = np.logspace(-3, 3, 100)
+    feature_grid = np.logspace(-7, 3, 200)
 
-    path = 'inputs/in/' + args.input + '/'
+    path = 'inputs/in_15/' + args.input + '/'
     with open(path + 'x.pkl', 'rb') as f:
         x = pkl.load(f)
     with open(path + 'y.pkl', 'rb') as f:
@@ -64,12 +64,15 @@ if __name__ == "__main__":
     train_index, test_index = ixs[args.ix]
     X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
     y_train, y_test = y[train_index], y[test_index]
+    start = time.time()
     final_res_dict = mb.nested_cv_func(model, X_train, y_train, optim_param='auc', plot_lambdas=False, learn_var=lv, \
                                        feature_grid=feature_grid)
 
+    end = time.time()
+    print(end - start)
     with open(path_out + "seed" +  str(args.seed) + "_ix" + str(args.ix) + '.pkl', 'wb') as f:
         pickle.dump(final_res_dict, f)
 
     f2 = open(args.output + "/" + args.input + "_SVM_seed" + str(args.seed) +  ".txt","a")
-    f2.write('Index ' + str(args.ix) +  ', AUC= ' + str(final_res_dict['metrics']['auc']) + '\n')
+    f2.write('Index ' + str(args.ix) +  ', AUC= ' + str(final_res_dict['metrics']['auc']) + ', Time = ' + str(end - start) + '\n')
     f2.close()
