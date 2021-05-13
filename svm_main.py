@@ -33,7 +33,7 @@ if __name__ == "__main__":
     if not args.ix:
         args.ix = 0
 
-    model = sklearn.svm.SVC(class_weight='balanced', random_state = args.seed, probability = False)
+    model = sklearn.svm.SVC(class_weight='balanced', random_state = args.seed, probability = True)
 
     mb = basic_ml()
     if not args.output:
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
     y_train, y_test = y[train_index], y[test_index]
     start = time.time()
-    final_res_dict = mb.nested_cv_func(model, X_train, y_train, optim_param='f1', plot_lambdas=False, learn_var=lv, \
+    final_res_dict = mb.nested_cv_func(model, X_train, y_train, optim_param='auc', plot_lambdas=False, learn_var=lv, \
                                        feature_grid=feature_grid)
 
     end = time.time()
