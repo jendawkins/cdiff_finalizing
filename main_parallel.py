@@ -8,6 +8,7 @@ import argparse
 import os
 import time
 import itertools
+from dataLoader import *
 
 if __name__ == "__main__":
 
@@ -21,11 +22,14 @@ if __name__ == "__main__":
     parser.add_argument("-model", "--model", help="inpath", type=str)
     args = parser.parse_args()
     mb = basic_ml()
-    path = 'inputs/in_25/' + args.i + '/'
-    with open(path + 'x.pkl','rb') as f:
-        x = pkl.load(f)
-    with open(path + 'y.pkl','rb') as f:
-        y = pkl.load(f)
+
+    dl = dataLoader(pt_perc = .25, meas_thresh = 0, var_perc = 5, pt_tmpts = 1)
+    x, y = dl.week_one[args.i]
+    # path = 'inputs/in_25/' + args.i + '/'
+    # with open(path + 'x.pkl','rb') as f:
+    #     x = pkl.load(f)
+    # with open(path + 'y.pkl','rb') as f:
+    #     y = pkl.load(f)
 
     if isinstance(y[0], str):
         y = (np.array(y) == 'Recur').astype('float')
@@ -47,7 +51,7 @@ if __name__ == "__main__":
 
     model = LogisticRegression(class_weight = 'balanced', penalty = 'l1', random_state = seed, solver = 'liblinear')
     lv = 'C'
-    feature_grid = np.logspace(-7,3,200)
+    feature_grid = np.logspace(-7,2,300)
 
     if args.model == 'RF':
         model_2 = RandomForestClassifier(class_weight='balanced', n_estimators=100,

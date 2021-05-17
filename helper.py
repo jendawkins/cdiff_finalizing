@@ -7,6 +7,7 @@ import sklearn
 import copy
 from sklearn.model_selection import StratifiedKFold
 import os
+import scipy.stats as st
 
 def standardize(x,override = False):
     if not override:
@@ -17,16 +18,16 @@ def standardize(x,override = False):
         dem = np.where(np.std(x, 0) == 0, 1, np.std(x, 0))
     return (x - np.mean(x, 0))/dem
 
-def get_percentiles(vals, interval = 90, digits = 4, coef = False):
-    col = np.array(vals)
-    ix_sort = np.argsort(-np.abs(vals))
+def get_percentiles(dat, interval = 90, digits = 4, coef = False):
+    col = np.array(dat)
+    ix_sort = np.argsort(-np.abs(dat))
     sort = col[ix_sort]
     perc = (100-interval)/(2*100)
     ix_upper = np.int(np.floor(len(sort)*perc))
     ix_lower = np.int(np.ceil(len(sort)*(1-perc)))
-    if ix_upper >= len(vals):
+    if ix_upper >= len(dat):
         ix_upper = ix_upper - 1
-    if ix_lower <= len(vals):
+    if ix_lower <= len(dat):
         ix_lower = ix_lower - 1
     if coef:
         return (np.round(np.exp(sort[ix_lower]),digits), np.round(np.exp(sort[ix_upper]),digits))
@@ -174,9 +175,6 @@ def make_toxin_cdiff_targets(labels,dtype,targ_type,step_ahead = 1):
     
     return pd.DataFrame(end_dict, index = [0])
 
-            
-
-
 def dmatrix(data, metric='e'):
     # does linkage among columns
     if metric == 's':
@@ -184,34 +182,15 @@ def dmatrix(data, metric='e'):
         data_s = np.array(data_s)
     else:
         data_s = np.array(data)
-    tuples = list(itertools.combinations(range(data_s.shape[1]), 2))
+    tuples = list(itertools.combinations(range(data_s.shape[0]), 2))
     vec = np.zeros(len(tuples))
     for k, (i, j) in enumerate(tuples):
         if i < j:
-            vec[k] = custom_dist(data_s[:, i], data_s[:, j], metric)
+            vec[k] = custom_dist(data_s[i, :], data_s[j, :], metric)
     return vec
 
-def get_percentiles(vals, interval = 90, digits = 4, coef = False):
-    col = np.array(vals)
-    ix_sort = np.argsort(-np.abs(vals))
-    sort = col[ix_sort]
-    perc = (100-interval)/(2*100)
-    ix_upper = np.int(np.floor(len(sort)*perc))
-    ix_lower = np.int(np.ceil(len(sort)*(1-perc)))
-    if ix_upper >= len(vals):
-        ix_upper = ix_upper - 1
-    if ix_lower <= len(vals):
-        ix_lower = ix_lower - 1
-    if coef:
-        CI = (np.round(np.exp(sort[ix_lower]),digits), np.round(np.exp(sort[ix_upper]),digits))
-    else:
-        CI = (np.round((sort[ix_lower]),digits), np.round((sort[ix_upper]),digits))
-    return CI
 
-def vars(data, labels=None, normalize_data = False):
-    if normalize_data:
-        data = self.normalize(data)
-    # labels = self.targets_dict[dat_type]
+def get_vars(data, labels=None):
     if labels:
         cleared = data[np.array(labels) == 'Cleared']
         recur = data[np.array(labels) == 'Recur']
@@ -227,14 +206,14 @@ def vars(data, labels=None, normalize_data = False):
         within_class_vars = None
         between_class_vars = None
 
-    total_vars = np.std(data, 0)/np.mean(data,0)
+    total_vars = np.std(data, 0)/np.abs(np.mean(data,0))
     vardict = {'within':within_class_vars,'between':between_class_vars,'total':total_vars}
     return vardict
 
-def filter_vars(data, labels=None, perc=30, var_type = 'total', normalize_data = False):
+def filter_vars(data, labels=None, perc=5, var_type = 'total'):
     if labels == None:
         assert(var_type == 'total')
-    vardict = vars(data, labels, normalize_data)
+    vardict = get_vars(data, labels)
     variances = vardict[var_type]
     variances = variances.replace(np.nan,0)
     
@@ -242,46 +221,53 @@ def filter_vars(data, labels=None, perc=30, var_type = 'total', normalize_data =
 
     temp = data.iloc[:,list(rm2)]
     # import pdb; pdb.set_trace()
-    if len(np.where(np.sum(temp,0)==0)[0]) > 0:
-        import pdb; pdb.set_trace()
+    # if len(np.where(np.sum(temp,0)==0)[0]) > 0:
+    #     import pdb; pdb.set_trace()
     return data.iloc[:,list(rm2)]
-
-
-# def leave_one_out_cv(data, labels, num_folds=None):
-
-#     if isinstance(data.index.values[0], str):
-#         patients = np.array([int(i.split('-')[1])
-#                                 for i in data.index.values])
-#         pdict = {}
-#         for i, pt in enumerate(patients):
-#             pdict[pt] = labels[i]
-
-#         ix_all = []
-#         for ii in pdict.keys():
-#             pt_test = ii
-#             pt_train = list(set(pdict.keys()) - set([ii]))
-#             ixtrain = (np.concatenate(
-#                 [np.where(patients == j)[0] for j in pt_train]))
-#             ixtest = np.where(patients == pt_test)[0]
-#             set1 = set([patients[ix] for ix in ixtest])
-#             set2 = set([patients[ix] for ix in ixtrain])
-#             set1.intersection(set2)
-
-#             ix_all.append((ixtrain, ixtest))
-#             assert(not set1.intersection(set2))
-
-#     else:
-#         ix_all = []
-#         # CHANGE LINE!
-#         for ixs in range(len(labels)):
-#             ixtest = [ixs]
-#             ixtrain = list(set(range(len(labels))) - set(ixtest))
-#             ix_all.append((ixtrain, ixtest))
-#     return ix_all
-
 
 def isclose(a, b, tol=1e-03):
     return (abs(a-b) <= tol).all()
+
+def get_epsilon(data):
+    vals = np.array(data).flatten()
+    vals[np.where(vals == 0)[0]] = 1
+    epsilon = 0.1 * np.min(vals)
+    return epsilon
+
+def filter_by_pt(dataset, targets=None, perc = .15, pt_thresh = 1, meas_thresh = 10):
+    pts = [x.split('-')[0] for x in dataset.index.values]
+    tmpts = [x.split('-')[1] for x in dataset.index.values]
+
+    # mets is dataset with ones where data is present, zeros where it is not
+    mets = np.zeros(dataset.shape)
+    mets[dataset > meas_thresh] = 1
+
+    # if measurement of a microbe/metabolite only exists in less than pt_thresh timepoints, set that measurement to zero
+    if pt_thresh > 1:
+        for pt in pts:
+            ixs = np.where(np.array(pts) == pt)[0]
+            tmpts_pt = np.array(tmpts)[ixs]
+            mets_counts = np.sum(mets, 1).astype('int')
+            met_rm_ixs = np.where(mets_counts < pt_thresh)[0]
+            for ix in ixs:
+                mets[met_rm_ixs, ix] = 0
+
+    mets_all_keep = []
+    # For each class, count how many measurements exist within that class and keep only measurements in X perc in each class
+    if targets is not None:
+        if sum(['-' in x for x in targets.index.values]) > 1:
+            labels = targets[dataset.index.values]
+        else:
+            labels = targets[np.array(pts)]
+        for lab_cat in np.unique(labels):
+            mets_1 = mets[np.where(labels == lab_cat)[0], :]
+            met_counts = np.sum(mets_1, 0)
+            met_keep_ixs = np.where(met_counts >= np.round(perc * mets_1.shape[0]))[0]
+            mets_all_keep.extend(met_keep_ixs)
+    else:
+        met_counts = np.sum(mets, 0)
+        mets_all_keep = np.where(met_counts >= np.round(perc * mets.shape[0]))[0]
+    return dataset.iloc[:,np.unique(mets_all_keep)]
 
 def asv_to_name(asv, tax_dat = ['inputs/dada2-taxonomy-rdp.csv','inputs/dada2-taxonomy-silva.csv']):
     tdat = [pd.read_csv(t) for t in tax_dat]
@@ -655,28 +641,28 @@ def split_to_folds(in_data, in_labels, folds=5, ddtype = 'week_one'):
     #     zip_ixs = skf.split(in_data, in_labels)
     return zip_ixs
 
-def get_resdict_from_file(path):
-    # path = 'out_test/'
-    res_dict = {}
-    for file in os.listdir(path):
-        if file == '.DS_Store':
-            continue
-        key_name = file.split('.')[0].split('_')[0]
-        seed = int(file.split('.')[0].split('_')[1])
-        ix = int(file.split('.')[0].split('_')[2])
-        with open(inner_path + file, 'rb') as f:
-            # temp is a dictionary with parameter keys 
-            temp = pkl.load(f)
-            if key_name not in res_dict.keys():
-                res_dict[key_name] = {}
-            if ix not in res_dict[key_name].keys():
-                res_dict[key_name][ix] = {}         
-            for test_param in temp[ix].keys():
-                if test_param not in res_dict[key_name][ix].keys():
-                    res_dict[key_name][ix][test_param] = {}
-                # res dict keys go model, held out test index, parameter to test, seed
-                res_dict[key_name][ix][test_param][seed] = temp[ix][test_param]
-    return res_dict
+# def get_resdict_from_file(path):
+#     # path = 'out_test/'
+#     res_dict = {}
+#     for file in os.listdir(path):
+#         if file == '.DS_Store':
+#             continue
+#         key_name = file.split('.')[0].split('_')[0]
+#         seed = int(file.split('.')[0].split('_')[1])
+#         ix = int(file.split('.')[0].split('_')[2])
+#         with open(inner_path + file, 'rb') as f:
+#             # temp is a dictionary with parameter keys
+#             temp = pkl.load(f)
+#             if key_name not in res_dict.keys():
+#                 res_dict[key_name] = {}
+#             if ix not in res_dict[key_name].keys():
+#                 res_dict[key_name][ix] = {}
+#             for test_param in temp[ix].keys():
+#                 if test_param not in res_dict[key_name][ix].keys():
+#                     res_dict[key_name][ix][test_param] = {}
+#                 # res dict keys go model, held out test index, parameter to test, seed
+#                 res_dict[key_name][ix][test_param][seed] = temp[ix][test_param]
+#     return res_dict
 
 def get_best_param(res_dict, key_name):
     best_param = {}
