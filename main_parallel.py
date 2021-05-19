@@ -23,7 +23,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     mb = basic_ml()
 
-    dl = dataLoader(pt_perc = .25, meas_thresh = 0, var_perc = 15, pt_tmpts = 1)
+    if args.i == '16s':
+        dl = dataLoader(pt_perc = .05, meas_thresh = 10, var_perc = 5, pt_tmpts = 1)
+    else:
+        dl = dataLoader(pt_perc=.25, meas_thresh=0, var_perc=15, pt_tmpts=1)
     x, y = dl.week_one[args.i]
     # path = 'inputs/in_25/' + args.i + '/'
     # with open(path + 'x.pkl','rb') as f:

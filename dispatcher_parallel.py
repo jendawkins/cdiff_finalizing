@@ -80,7 +80,7 @@ model = 'LR'
 
 for param in ['coef_bootstrap', 'auc_bootstrap']:
     for seed in range(0,5):
-        for input_path in ['bile_acids', 'metabs']:
+        for input_path in ['bile_acids', 'metabs', '16s','joint']:
         # for input_path in ['week_one_ALL', 'week_one_metabs','week_one_16s','week_one_bileacids']:
             if param == 'auc_bootstrap':
                 for ix in range(49):

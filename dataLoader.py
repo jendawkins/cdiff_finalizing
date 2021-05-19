@@ -35,10 +35,10 @@ class dataLoader():
         for key, value in self.keys.items():
             self.week[key] = {}
             self.week_raw[key] = {}
-            value['filtered_data'] = self.filter_transform(value['data'], value['targets'], key)
+            value['filtered_data'] = self.filter_transform(value['data'], None, key)
             temp = self.get_week_x(value['filtered_data'], value['targets_by_pt'], week=1)
             self.week_one[key] = temp['x'], temp['y']
-            temp_filt = filter_by_pt(value['data'], value['targets_by_pt'], perc=self.pt_perc, pt_thresh=self.pt_tmpts,
+            temp_filt = filter_by_pt(value['data'], targets=None, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
                                      meas_thresh=self.meas_thresh)
             for week in [0,1,1.5,2,2.5,3,3.5,4]:
                 self.week[key][week] = self.get_week_x_step_ahead(value['filtered_data'], value['targets_by_pt'], week = week)
