@@ -12,6 +12,7 @@ from dataLoader import *
 from lifelines import CoxPHFitter
 
 def train_cox(x, ix, y_per_pt):
+    feature_grid = np.logspace(-5, 4, 10)
     train_index, test_index = ix
     x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
     ix_inner = leave_one_out_cv(x_train0, x_train0['outcome'], ddtype='all_data')
