@@ -79,7 +79,7 @@ dattype = 'metabs'
 
 for ix in range(49):
     path_out = args.o + '/' + dattype + '/'
-    if os.path.exists(path_out + str(args.ix) + '.pkl'):
+    if os.path.exists(path_out + str(ix) + '.pkl'):
         continue
     else:
         fname = 'cdiff_lr.lsf'
