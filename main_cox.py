@@ -35,6 +35,7 @@ def train_cox(x, ix, y_per_pt):
                 x_tr2, x_ts2 = x_train.iloc[train_ix, :], x_train.iloc[test_ix, :]
                 tmpts_in = [xx.split('-')[1] for xx in x_tr2.index.values]
                 samp_weights = get_class_weights(np.array(x_tr2['outcome']), tmpts_in)
+                samp_weights[samp_weights <= 0] = 1
                 x_tr2['weights'] = samp_weights
                 model.fit(x_tr2, duration_col='week', event_col='outcome',
                           weights_col='weights', robust=True)
@@ -50,6 +51,7 @@ def train_cox(x, ix, y_per_pt):
         model = CoxPHFitter(penalizer=best_lamb, l1_ratio=1.)
         tmpts_in = [xx.split('-')[1] for xx in x_train.index.values]
         samp_weights = get_class_weights(np.array(x_train['outcome']), tmpts_in)
+        samp_weights[samp_weights<=0] = 1
         x_train['weights'] = samp_weights
         model.fit(x_train, duration_col='week', event_col='outcome', weights_col='weights', robust=True)
         pred_f = model.predict_survival_function(x_test.iloc[0, :])
