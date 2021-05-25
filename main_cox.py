@@ -101,6 +101,8 @@ if __name__ == "__main__":
     x_o = dl.cdiff_data_dict['filtered_data']
     ix_keep = [ix for ix in x_o.index.values if ix.split('-')[1].split('.')[0].isnumeric()]
     x = x_o.loc[ix_keep, :]
+    y = dl.cdiff_data_dict['targets'].loc[ix_keep]
+
     y_val = y.copy()
     pts = [yy.split('-')[0] for yy in y.index.values]
     tmpts = [yy.split('-')[1] for yy in y.index.values]
