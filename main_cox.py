@@ -124,9 +124,7 @@ if __name__ == "__main__":
         os.mkdir(path_out)
 
     ixs = leave_one_out_cv(x, x['outcome'], ddtype = 'all_data')
-    train_index, test_index = ixs[args.ix]
-    X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
-    final_res_dict = train_cox(x, args.ix, y_per_pt)
+    final_res_dict = train_cox(x, ixs[args.ix], y_per_pt)
 
     with open(path_out + str(args.ix) + '.pkl', 'wb') as f:
         pickle.dump(final_res_dict, f)
