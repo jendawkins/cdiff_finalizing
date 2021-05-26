@@ -80,12 +80,12 @@ dattype = 'metabs'
 for ix in range(49):
     for ix1 in range(48):
         path_out = args.o + '/' + dattype + '/'
-        if os.path.exists(path_out + 'ix_' + str(args.ix[0]) +'ix_' + str(args.ix[1])+ '.pkl'):
+        if os.path.exists(path_out + 'ix_' + str(ix) +'ix_' + str(ix1)+ '.pkl'):
             continue
         else:
             fname = 'cdiff_lr.lsf'
             f = open(fname, 'w')
-            f.write(my_str.format(ix, args.o, dattype))
+            f.write(my_str.format(ix, ix1, args.o, dattype))
             f.close()
             os.system('bsub < {}'.format(fname))
 
