@@ -53,7 +53,7 @@ def train_cox(x_train0, ix_in, y_per_pt):
     try:
         model.fit(x_train, duration_col='week', event_col='outcome', weights_col='weights', robust=True)
     except:
-        continue
+        return {}
     pred_f = model.predict_survival_function(x_test.iloc[0, :])
     pt = x_test.index.values[0].split('-')[0]
 
