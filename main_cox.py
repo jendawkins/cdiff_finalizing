@@ -31,8 +31,11 @@ def train_cox(x_train0, ix_in, y_per_pt):
             samp_weights = get_class_weights(np.array(x_tr2['outcome']), tmpts_in)
             samp_weights[samp_weights <= 0] = 1
             x_tr2['weights'] = samp_weights
-            model.fit(x_tr2, duration_col='week', event_col='outcome',
-                      weights_col='weights', robust=True)
+            try:
+                model.fit(x_tr2, duration_col='week', event_col='outcome',
+                          weights_col='weights', robust=True)
+            except:
+                continue
             pred_f = model.predict_survival_function(x_ts2.iloc[0, :])
             probs_in.append(1 - pred_f.loc[4.0].item())
             true.append(x_ts2['outcome'].iloc[-1])
@@ -47,7 +50,10 @@ def train_cox(x_train0, ix_in, y_per_pt):
     samp_weights = get_class_weights(np.array(x_train['outcome']), tmpts_in)
     samp_weights[samp_weights<=0] = 1
     x_train['weights'] = samp_weights
-    model.fit(x_train, duration_col='week', event_col='outcome', weights_col='weights', robust=True)
+    try:
+        model.fit(x_train, duration_col='week', event_col='outcome', weights_col='weights', robust=True)
+    except:
+        continue
     pred_f = model.predict_survival_function(x_test.iloc[0, :])
     pt = x_test.index.values[0].split('-')[0]
 
