@@ -122,7 +122,7 @@ if __name__ == "__main__":
         os.mkdir(path_out)
 
     ixs = leave_one_out_cv(x, x['outcome'], ddtype = 'all_data')
-    train_index, test_index = ix[args.ix[0]]
+    train_index, test_index = ixs[args.ix[0]]
     x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
     ix_inner = leave_one_out_cv(x_train0, x_train0['outcome'], ddtype='all_data')
     final_res_dict = train_cox(x_train0, ix_inner[args.ix[1]], y_per_pt)
