@@ -62,7 +62,7 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./main_cox.py -ix {0} -o {1} -i {2}
+python3 ./main_cox.py -ix {0} {1} -o {2} -i {3}
 '''
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--o", help = "outpath", type = str)
@@ -78,15 +78,16 @@ if not os.path.isdir(args.o):
 dattype = 'metabs'
 
 for ix in range(49):
-    path_out = args.o + '/' + dattype + '/'
-    if os.path.exists(path_out + str(ix) + '.pkl'):
-        continue
-    else:
-        fname = 'cdiff_lr.lsf'
-        f = open(fname, 'w')
-        f.write(my_str.format(ix, args.o, dattype))
-        f.close()
-        os.system('bsub < {}'.format(fname))
+    for ix1 in range(48):
+        path_out = args.o + '/' + dattype + '/'
+        if os.path.exists(path_out + 'ix_' + str(args.ix[0]) +'ix_' + str(args.ix[1])+ '.pkl'):
+            continue
+        else:
+            fname = 'cdiff_lr.lsf'
+            f = open(fname, 'w')
+            f.write(my_str.format(ix, args.o, dattype))
+            f.close()
+            os.system('bsub < {}'.format(fname))
 
 
 
