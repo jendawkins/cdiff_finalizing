@@ -35,10 +35,13 @@ class dataLoader():
         for key, value in self.keys.items():
             self.week[key] = {}
             self.week_raw[key] = {}
-            value['filtered_data'] = self.filter_transform(value['data'], None, key)
+            value['targets'] = value['targets'].replace('Recur', 'Recurrer').replace('Cleared','Non-recurrer')
+            value['targets_by_pt'] = value['targets_by_pt'].replace('Recur', 'Recurrer').replace('Cleared', 'Non-recurrer')
+            value['filtered_data'] = self.filter_transform(value['data'], value['targets'], key)
             temp = self.get_week_x(value['filtered_data'], value['targets_by_pt'], week=1)
+
             self.week_one[key] = temp['x'], temp['y']
-            temp_filt = filter_by_pt(value['data'], targets=None, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
+            temp_filt = filter_by_pt(value['data'], targets=value['targets'], perc=self.pt_perc, pt_thresh=self.pt_tmpts,
                                      meas_thresh=self.meas_thresh)
             for week in [0,1,1.5,2,2.5,3,3.5,4]:
                 self.week[key][week] = self.get_week_x_step_ahead(value['filtered_data'], value['targets_by_pt'], week = week)
@@ -76,8 +79,8 @@ class dataLoader():
 
         self.targets_dict = pd.Series(self.col_mat_pts['PATIENT STATUS (BWH)'].values, index = self.col_mat_pts['CLIENT SAMPLE ID'].values).to_dict()
 
-        self.cdiff_dat = pd.DataFrame(np.array(act_data), columns = self.col_mat_pts['CLIENT SAMPLE ID'], 
-                          index = self.col_mat_mets['BIOCHEMICAL']).fillna(0).T
+        self.cdiff_dat = pd.DataFrame(np.array(act_data), columns = self.col_mat_pts['CLIENT SAMPLE ID'].values,
+                          index = self.col_mat_mets['BIOCHEMICAL'].values).fillna(0).T
 
         self.targets_by_pt = {key.split('-')[0]:value for key, value in self.targets_dict.items() if key.split('-')[1].isnumeric()}
 
@@ -212,8 +215,8 @@ class dataLoader():
         rm_ix = []
         targets_out = {}
         for pt in np.unique(pts):
-            targets_out[pt] = 'Cleared'
-            if targets[pt] == 'Recur':
+            targets_out[pt] = 'Non-recurrer'
+            if targets[pt] == 'Recurrer':
                 ix_pt = np.where(pt == np.array(pts))[0]
                 tm_floats = [float(tmpts[ix]) for ix in ix_pt if tmpts[ix].replace('.','').isnumeric()]
                 if week not in tm_floats:
@@ -224,7 +227,7 @@ class dataLoader():
                 tm_floats.sort()
                 tmpt_step_before = tm_floats[-2]
                 if tmpt_step_before == week:
-                    targets_out[pt] = 'Recur'
+                    targets_out[pt] = 'Recurrer'
 
         pt_keys = np.array(list(set(pt_keys) - set(rm_ix)))
         pt_keys_1 = np.array([pt + '-' + str(week) for pt in pt_keys])

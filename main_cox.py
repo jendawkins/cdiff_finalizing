@@ -10,9 +10,11 @@ import time
 import itertools
 from dataLoader import *
 from lifelines import CoxPHFitter
+import warnings
+warnings.filterwarnings("ignore")
 
-def train_cox(x_train0, ix_in, y_per_pt):
-    feature_grid = np.logspace(-5, 4, 10)
+def train_cox(x_train0, ix_in, y_per_pt, y_int):
+    feature_grid = np.logspace(-3, 8, 12)
     survival = {}
     # for ic_in, ix_in in enumerate(ix_inner):
     train_index, test_index = ix_in
@@ -23,32 +25,41 @@ def train_cox(x_train0, ix_in, y_per_pt):
         ix_inner2 = leave_one_out_cv(x_train, x_train['outcome'], ddtype='all_data')
         probs_in = []
         true = []
+        counter = 0
         for ic_in2, ix_in2 in enumerate(ix_inner2):
             model = CoxPHFitter(penalizer=lamb, l1_ratio=1.)
             train_ix, test_ix = ix_in2
             x_tr2, x_ts2 = x_train.iloc[train_ix, :], x_train.iloc[test_ix, :]
             tmpts_in = [xx.split('-')[1] for xx in x_tr2.index.values]
-            samp_weights = get_class_weights(np.array(x_tr2['outcome']), tmpts_in)
+            samp_weights = get_class_weights(np.array(y_int[x_tr2.index.values]), tmpts_in)
+
+
             samp_weights[samp_weights <= 0] = 1
-            x_tr2['weights'] = samp_weights
+            x_tr2.insert(x_tr2.shape[1], 'weights', samp_weights)
             try:
                 model.fit(x_tr2, duration_col='week', event_col='outcome',
                           weights_col='weights', robust=True)
             except:
+                counter += 1
                 continue
             pred_f = model.predict_survival_function(x_ts2.iloc[0, :])
             probs_in.append(1 - pred_f.loc[4.0].item())
             true.append(x_ts2['outcome'].iloc[-1])
-        auc_in = sklearn.metrics.roc_auc_score(true, probs_in)
+        try:
+            auc_in = sklearn.metrics.roc_auc_score(true, probs_in)
+        except:
+            continue
         lamb_dict[lamb] = auc
+        print(str(lamb) + ' complete')
     lambdas, aucs_in = zip(*lamb_dict.items())
     ix_max = np.argmax(aucs_in)
     best_lamb = lambdas[ix_max]
 
     model = CoxPHFitter(penalizer=best_lamb, l1_ratio=1.)
     tmpts_in = [xx.split('-')[1] for xx in x_train.index.values]
-    samp_weights = get_class_weights(np.array(x_train['outcome']), tmpts_in)
+    samp_weights = get_class_weights(np.array(y_int[x_train.index.values]), tmpts_in)
     samp_weights[samp_weights<=0] = 1
+    x_train.insert(x_train.shape[1], 'weights', samp_weights)
     x_train['weights'] = samp_weights
     try:
         model.fit(x_train, duration_col='week', event_col='outcome', weights_col='weights', robust=True)
@@ -97,6 +108,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     mb = basic_ml()
 
+    if not args.ix:
+        args.ix = [0, 0]
+        args.o = 'test'
+        args.i = 'metabs'
+
     # if args.i == '16s':
     #     dl = dataLoader(pt_perc=.05, meas_thresh=10, var_perc=5, pt_tmpts=1)
     # else:
@@ -114,13 +130,14 @@ if __name__ == "__main__":
         ix = np.where(np.array(pts) == pt)[0]
         pt_tmpts = np.array(tmpts)[ix]
         p_ix = y.index.values[ix]
-        if y_per_pt[pt] == 'Cleared':
+        if y_per_pt[pt] == 'Non-recurrer':
             continue
         else:
-            y_val[p_ix] = ['Cleared'] * (len(ix) - 1) + ['Recur']
+            y_val[p_ix] = ['Non-recurrer'] * (len(ix) - 1) + ['Recurrer']
 
     x['week'] = tmpts
-    x['outcome'] = (np.array(y_val) == 'Recur').astype(float)
+    x['outcome'] = (np.array(y_val) == 'Recurrer').astype(float)
+    y_int = y.replace('Recurrer',1).replace('Non-recurrer',0)
 
     path_out = args.o + '/' + args.i + '/'
 
@@ -131,7 +148,7 @@ if __name__ == "__main__":
     train_index, test_index = ixs[args.ix[0]]
     x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
     ix_inner = leave_one_out_cv(x_train0, x_train0['outcome'], ddtype='all_data')
-    final_res_dict = train_cox(x_train0, ix_inner[args.ix[1]], y_per_pt)
+    final_res_dict = train_cox(x_train0, ix_inner[args.ix[1]], y_per_pt, y_int)
 
     with open(path_out + 'ix_' + str(args.ix[0]) +'ix_' + str(args.ix[1])+ '.pkl', 'wb') as f:
         pickle.dump(final_res_dict, f)
