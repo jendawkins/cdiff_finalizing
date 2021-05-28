@@ -160,8 +160,7 @@ if __name__ == "__main__":
     end = time.time()
     passed = np.round((end - start) / 60, 3)
     f2 = open(args.o + '/' + args.i + ".txt", "a")
-    f2.write('index ' + str(args.ix) + ', AUC: ' + str(final_res_dict['auc']) \
-             + ' in ' + str(passed) + ' minutes' + '\n')
+    f2.write('index ' + str(args.ix) + ' in ' + str(passed) + ' minutes' + '\n')
     f2.close()
 
 # Get coefficients from nested CV
