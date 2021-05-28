@@ -26,6 +26,7 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int):
         probs_in = []
         true = []
         counter = 0
+        start = time.time()
         for ic_in2, ix_in2 in enumerate(ix_inner2):
             model = CoxPHFitter(penalizer=lamb, l1_ratio=1.)
             train_ix, test_ix = ix_in2
@@ -46,12 +47,15 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int):
             probs_in.append(1 - pred_f.loc[4.0].item())
             true.append(x_ts2['outcome'].iloc[-1])
         try:
-            auc_in = sklearn.metrics.roc_auc_score(true, probs_in)
+            auc = sklearn.metrics.roc_auc_score(true, probs_in)
         except:
             continue
         lamb_dict[lamb] = auc
+        end_t = time.time()
         print(str(lamb) + ' complete')
-    lambdas, aucs_in = zip(*lamb_dict.items())
+        print(start - end_t)
+
+    lambdas, aucs_in = list(zip(*lamb_dict.items()))
     ix_max = np.argmax(aucs_in)
     best_lamb = lambdas[ix_max]
 
