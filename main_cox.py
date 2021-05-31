@@ -14,7 +14,7 @@ import warnings
 from lifelines.utils import concordance_index
 warnings.filterwarnings("ignore")
 
-def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'CI'):
+def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc'):
     feature_grid = np.logspace(-3, 8, 12)
     survival = {}
     # for ic_in, ix_in in enumerate(ix_inner):
@@ -126,6 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("-ix", "--ix", help="index for splits", type=int, nargs='+')
     parser.add_argument("-o", "--o", help="outpath", type=str)
     parser.add_argument("-i", "--i", help="inpath", type=str)
+    parser.add_argument("-metric", "--metric", help="metric", type=str)
     args = parser.parse_args()
     mb = basic_ml()
 
@@ -133,6 +134,7 @@ if __name__ == "__main__":
         args.ix = [0, 0]
         args.o = 'test'
         args.i = 'metabs'
+        args.metric = 'auc'
 
     # if args.i == '16s':
     #     dl = dataLoader(pt_perc=.05, meas_thresh=10, var_perc=5, pt_tmpts=1)
@@ -169,7 +171,7 @@ if __name__ == "__main__":
     train_index, test_index = ixs[args.ix[0]]
     x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
     ix_inner = leave_one_out_cv(x_train0, x_train0['outcome'], ddtype='all_data')
-    final_res_dict = train_cox(x_train0, ix_inner[args.ix[1]], y_per_pt, y_int)
+    final_res_dict = train_cox(x_train0, ix_inner[args.ix[1]], y_per_pt, y_int, metric = args.metric)
     final_res_dict['data'] = x
 
     with open(path_out + 'ix_' + str(args.ix[0]) +'ix_' + str(args.ix[1])+ '.pkl', 'wb') as f:
