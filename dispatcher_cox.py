@@ -62,7 +62,7 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./main_cox.py -ix {0} {1} -o {2} -i {3} -metric {6}
+python3 ./main_cox.py -ix {0} {1} -o {2} -i {3} -metric {4}
 '''
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--o", help = "outpath", type = str)
