@@ -11,9 +11,10 @@ import itertools
 from dataLoader import *
 from lifelines import CoxPHFitter
 import warnings
+from lifelines.utils import concordance_index
 warnings.filterwarnings("ignore")
 
-def train_cox(x_train0, ix_in, y_per_pt, y_int):
+def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'CI'):
     feature_grid = np.logspace(-3, 8, 12)
     survival = {}
     # for ic_in, ix_in in enumerate(ix_inner):
@@ -27,30 +28,43 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int):
         true = []
         counter = 0
         start = time.time()
+
+        hazards = []
+        event_times = []
+        event_outcomes = []
         for ic_in2, ix_in2 in enumerate(ix_inner2):
             model = CoxPHFitter(penalizer=lamb, l1_ratio=1.)
             train_ix, test_ix = ix_in2
             x_tr2, x_ts2 = x_train.iloc[train_ix, :], x_train.iloc[test_ix, :]
             tmpts_in = [xx.split('-')[1] for xx in x_tr2.index.values]
             samp_weights = get_class_weights(np.array(y_int[x_tr2.index.values]), tmpts_in)
-
-
             samp_weights[samp_weights <= 0] = 1
             x_tr2.insert(x_tr2.shape[1], 'weights', samp_weights)
             try:
                 model.fit(x_tr2, duration_col='week', event_col='outcome',
-                          weights_col='weights', robust=True)
+                          weights_col='weights', robust=False, show_progress = True)
             except:
                 counter += 1
                 continue
             pred_f = model.predict_survival_function(x_ts2.iloc[0, :])
             probs_in.append(1 - pred_f.loc[4.0].item())
             true.append(x_ts2['outcome'].iloc[-1])
-        try:
-            auc = sklearn.metrics.roc_auc_score(true, probs_in)
-        except:
-            continue
-        lamb_dict[lamb] = auc
+            hazard = model.predict_partial_hazard(x_ts2)
+            hazards.append(hazard)
+            event_times.append(x_ts2['week'])
+            event_outcomes.append(x_test['outcome'])
+
+        if metric == 'CI':
+            try:
+                score = concordance_index(pd.concat(event_times), pd.concat(hazards), pd.concat(event_outcomes))
+            except:
+                continue
+        elif metric == 'auc':
+            try:
+                score = sklearn.metrics.roc_auc_score(true, probs_in)
+            except:
+                continue
+        lamb_dict[lamb] = score
         end_t = time.time()
         print(str(lamb) + ' complete')
         print(start - end_t)
@@ -59,18 +73,20 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int):
     ix_max = np.argmax(aucs_in)
     best_lamb = lambdas[ix_max]
 
-    model = CoxPHFitter(penalizer=best_lamb, l1_ratio=1.)
+    model_out = CoxPHFitter(penalizer=best_lamb, l1_ratio=1.)
     tmpts_in = [xx.split('-')[1] for xx in x_train.index.values]
     samp_weights = get_class_weights(np.array(y_int[x_train.index.values]), tmpts_in)
     samp_weights[samp_weights<=0] = 1
     x_train.insert(x_train.shape[1], 'weights', samp_weights)
     x_train['weights'] = samp_weights
     try:
-        model.fit(x_train, duration_col='week', event_col='outcome', weights_col='weights', robust=True)
+        model_out.fit(x_train, duration_col='week', event_col='outcome', weights_col='weights', robust=False)
     except:
         return {}
-    pred_f = model.predict_survival_function(x_test.iloc[0, :])
+    pred_f = model_out.predict_survival_function(x_test.iloc[0, :])
     pt = x_test.index.values[0].split('-')[0]
+
+    hazard_out = model_out.predict_partial_hazard(x_test)
 
 
     pts = [ii.split('-')[0] for ii in x.index.values]
@@ -84,7 +100,7 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int):
 
     probs_sm = 1 - pred_f.loc[4.0].item()
 
-    y_pred_exp = model.predict_expectation(x_test.iloc[[0], :])
+    y_pred_exp = model_out.predict_expectation(x_test.iloc[[0], :])
     survival['predicted'] = str(np.round(y_pred_exp.item(), 3))
     surv_func = pred_f
 
@@ -94,13 +110,14 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int):
 
     final_dict = {}
     # final_dict['probability_df'] = final_df
-    final_dict['model'] = model
+    final_dict['model'] = model_out
     final_dict['survival'] = survival
     final_dict['survival_function'] = surv_func
     final_dict['prob_true'] = (probs_sm, y_per_pt[pt])
-    final_dict['data'] = x
+    final_dict['times_hazards_outcomes'] = (x_test['week'], hazard_out, x_test['outcome'])
     # final_dict['auc'] = sklearn.metrics.roc_auc_score(final_df[0], final_df[1])
     return final_dict
+
 
 if __name__ == "__main__":
 
@@ -153,6 +170,7 @@ if __name__ == "__main__":
     x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
     ix_inner = leave_one_out_cv(x_train0, x_train0['outcome'], ddtype='all_data')
     final_res_dict = train_cox(x_train0, ix_inner[args.ix[1]], y_per_pt, y_int)
+    final_res_dict['data'] = x
 
     with open(path_out + 'ix_' + str(args.ix[0]) +'ix_' + str(args.ix[1])+ '.pkl', 'wb') as f:
         pickle.dump(final_res_dict, f)
