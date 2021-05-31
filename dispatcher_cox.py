@@ -62,11 +62,13 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./main_cox.py -ix {0} {1} -o {2} -i {3}
+python3 ./main_cox.py -ix {0} {1} -o {2} -i {3} -metric {6}
 '''
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--o", help = "outpath", type = str)
 args = parser.parse_args()
+
+metric = 'CI'
 
 if not args.o:
     print('Specify out dir')
@@ -85,7 +87,7 @@ for ix in range(49):
         else:
             fname = 'cdiff_lr.lsf'
             f = open(fname, 'w')
-            f.write(my_str.format(ix, ix1, args.o, dattype))
+            f.write(my_str.format(ix, ix1, args.o, dattype, metric))
             f.close()
             os.system('bsub < {}'.format(fname))
 
