@@ -30,7 +30,6 @@ my_str = '''
 
 #BSUB -q normal
 #BSUB -n 6
-#BSUB -R rusage[mem=8000]
 
 # Some important variables to check (Can be removed later)
 echo '---PROCESS RESOURCE LIMITS---'
