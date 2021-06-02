@@ -57,17 +57,21 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc'):
         if metric == 'CI':
             try:
                 score = concordance_index(pd.concat(event_times), pd.concat(hazards), pd.concat(event_outcomes))
+                lamb_dict[lamb] = score
+                end_t = time.time()
+                print(str(lamb) + ' complete')
+                print(start - end_t)
             except:
                 continue
         elif metric == 'auc':
             try:
                 score = sklearn.metrics.roc_auc_score(true, probs_in)
+                lamb_dict[lamb] = score
+                end_t = time.time()
+                print(str(lamb) + ' complete')
+                print(start - end_t)
             except:
                 continue
-        lamb_dict[lamb] = score
-        end_t = time.time()
-        print(str(lamb) + ' complete')
-        print(start - end_t)
 
     lambdas, aucs_in = list(zip(*lamb_dict.items()))
     ix_max = np.argmax(aucs_in)
