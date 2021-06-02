@@ -9,19 +9,19 @@ import itertools
 
 my_str = '''
 #!/bin/bash
-#BSUB -J pylab
-#BSUB -o fl.out
-#BSUB -e fl.err
+#BSUB -J test
+#BSUB -o output/test-%J.out
+#BSUB -e output/test-%J.err
 
-# This is a sample script with specific resource requirements for the
-# **bigmemory** queue with 64GB memory requirement and memory
-# limit settings, which are both needed for reservations of
-# more than 40GB.
+# This is a sample script with specific resource requirements
+# for the **normal** general queue with modest memory requirement 
+# 8GB or less memory, default memory allocation 2GB. 
+# Maximum runtime 3 day. Maximum number of CPU cores 6.
 # Copy this script and then submit job as follows:
 # ---
 # cd ~/lsf
-# cp templates/bsub/example_8CPU_bigmulti_64GB.lsf .
-# bsub < example_bigmulti_8CPU_64GB.lsf
+# cp templates/bsub/example_normal_6CPU_8GB.lsf .
+# bsub < example_normal_6CPU_8GB.lsf
 # ---
 # Then look in the ~/lsf/output folder for the script log
 # that matches the job ID number
@@ -29,6 +29,8 @@ my_str = '''
 # Please make a copy of this script for your own modifications
 
 #BSUB -q normal
+#BSUB -n 6
+#BSUB -R rusage[mem=8000]
 
 # Some important variables to check (Can be removed later)
 echo '---PROCESS RESOURCE LIMITS---'
