@@ -62,7 +62,7 @@ echo $TMPDIR
 
 cd /PHShome/jjd65/cdiff_finalizing
 
-python3 ./main_parallel.py -seed {0} -param {1} -ix {2} -o {3} -i {4} -model {5} -metric {6}
+python3 ./main_parallel.py -seed {0} -param {1} -ix {2} -o {3} -i {4} -model {5} 
 '''
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--o", help = "outpath", type = str)
@@ -76,7 +76,6 @@ if not os.path.isdir(args.o):
     os.mkdir(args.o)
 
 model = 'LR'
-metric = 'CI'
 # param = 'coef_bootstrap'
 
 for param in ['coef_bootstrap', 'auc_bootstrap']:
@@ -91,7 +90,7 @@ for param in ['coef_bootstrap', 'auc_bootstrap']:
                     else:
                         fname = 'cdiff_lr.lsf'
                         f = open(fname, 'w')
-                        f.write(my_str.format(seed, param, ix, args.o, input_path, model, metric))
+                        f.write(my_str.format(seed, param, ix, args.o, input_path, model))
                         f.close()
                         os.system('bsub < {}'.format(fname))
             else:

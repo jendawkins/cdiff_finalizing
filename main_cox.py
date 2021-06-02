@@ -14,8 +14,9 @@ import warnings
 from lifelines.utils import concordance_index
 warnings.filterwarnings("ignore")
 
-def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc'):
-    feature_grid = np.logspace(-3, 8, 12)
+def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = None):
+    if feature_grid is None:
+        feature_grid = np.logspace(-3, 8, 12)
     survival = {}
     # for ic_in, ix_in in enumerate(ix_inner):
     train_index, test_index = ix_in
@@ -42,7 +43,7 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc'):
             x_tr2.insert(x_tr2.shape[1], 'weights', samp_weights)
             try:
                 model.fit(x_tr2, duration_col='week', event_col='outcome',
-                          weights_col='weights', robust=False, show_progress = True)
+                          weights_col='weights', robust=False, show_progress = False)
             except:
                 counter += 1
                 continue
@@ -139,6 +140,7 @@ if __name__ == "__main__":
         args.o = 'test'
         args.i = 'metabs'
         args.metric = 'auc'
+        feature_grid = np.logspace(0, 5, 2)
 
     # if args.i == '16s':
     #     dl = dataLoader(pt_perc=.05, meas_thresh=10, var_perc=5, pt_tmpts=1)
@@ -160,7 +162,7 @@ if __name__ == "__main__":
         if y_per_pt[pt] == 'Non-recurrer':
             continue
         else:
-            y_val[p_ix] = ['Non-recurrer'] * (len(ix) - 1) + ['Recurrer']
+            y_val[p_ix[-1]] = 'Recurrer'
 
     x['week'] = tmpts
     x['outcome'] = (np.array(y_val) == 'Recurrer').astype(float)
@@ -175,7 +177,7 @@ if __name__ == "__main__":
     train_index, test_index = ixs[args.ix[0]]
     x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
     ix_inner = leave_one_out_cv(x_train0, x_train0['outcome'], ddtype='all_data')
-    final_res_dict = train_cox(x_train0, ix_inner[args.ix[1]], y_per_pt, y_int, metric = args.metric)
+    final_res_dict = train_cox(x_train0, ix_inner[args.ix[1]], y_per_pt, y_int, metric = args.metric, feature_grid = feature_grid)
     final_res_dict['data'] = x
 
     with open(path_out + 'ix_' + str(args.ix[0]) +'ix_' + str(args.ix[1])+ '.pkl', 'wb') as f:
