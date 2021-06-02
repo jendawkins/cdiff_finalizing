@@ -52,7 +52,7 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc'):
             hazard = model.predict_partial_hazard(x_ts2)
             hazards.append(hazard)
             event_times.append(x_ts2['week'])
-            event_outcomes.append(x_test['outcome'])
+            event_outcomes.append(x_ts2['outcome'])
 
         if metric == 'CI':
             try:
