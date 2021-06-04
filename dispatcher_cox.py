@@ -29,7 +29,6 @@ my_str = '''
 # Please make a copy of this script for your own modifications
 
 #BSUB -q rerunnable
-#BSUB -n 6
 
 # Some important variables to check (Can be removed later)
 echo '---PROCESS RESOURCE LIMITS---'

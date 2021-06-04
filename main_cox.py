@@ -16,7 +16,7 @@ warnings.filterwarnings("ignore")
 
 def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = None):
     if feature_grid is None:
-        feature_grid = np.logspace(-3, 8, 12)
+        feature_grid = np.logspace(3, 8, 6)
     survival = {}
     # for ic_in, ix_in in enumerate(ix_inner):
     train_index, test_index = ix_in
@@ -25,7 +25,7 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = N
     lamb_dict = {}
     for lamb in feature_grid:
         ix_inner2 = leave_one_out_cv(x_train, x_train['outcome'], ddtype='all_data')
-        probs_in = []
+        # ix_inner2_rand_samp = np.random.choice(ix_inner2, 10, replace = False)
         true = []
         counter = 0
         start = time.time()
@@ -33,8 +33,10 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = N
         hazards = []
         event_times = []
         event_outcomes = []
+        model = CoxPHFitter(penalizer=lamb, l1_ratio=1.)
         for ic_in2, ix_in2 in enumerate(ix_inner2):
-            model = CoxPHFitter(penalizer=lamb, l1_ratio=1.)
+            start_inner = time.time()
+
             train_ix, test_ix = ix_in2
             x_tr2, x_ts2 = x_train.iloc[train_ix, :], x_train.iloc[test_ix, :]
             tmpts_in = [xx.split('-')[1] for xx in x_tr2.index.values]
@@ -54,6 +56,8 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = N
             hazards.append(hazard)
             event_times.append(x_ts2['week'])
             event_outcomes.append(x_ts2['outcome'])
+            end_inner = time.time()
+            print('Inner ix ' + str(ic_in2) + ' complete in ' + str(end_inner - start_inner))
 
         if metric == 'CI':
             try:
@@ -63,6 +67,7 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = N
                 print(str(lamb) + ' complete')
                 print(start - end_t)
             except:
+                print('No score available')
                 continue
         elif metric == 'auc':
             try:
@@ -137,10 +142,10 @@ if __name__ == "__main__":
 
     if not args.ix:
         args.ix = [0, 0]
-        args.o = 'test'
+        args.o = 'test_cox_preds'
         args.i = 'metabs'
         args.metric = 'auc'
-        feature_grid = np.logspace(0, 5, 2)
+        feature_grid = np.logspace(3, 5, 2)
 
     # if args.i == '16s':
     #     dl = dataLoader(pt_perc=.05, meas_thresh=10, var_perc=5, pt_tmpts=1)
