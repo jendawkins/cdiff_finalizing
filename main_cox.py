@@ -16,7 +16,7 @@ warnings.filterwarnings("ignore")
 
 def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = None):
     if feature_grid is None:
-        feature_grid = np.logspace(3, 8, 6)
+        feature_grid = np.logspace(7, 20, 14)
     survival = {}
     # for ic_in, ix_in in enumerate(ix_inner):
     train_index, test_index = ix_in
@@ -26,13 +26,15 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = N
     for lamb in feature_grid:
         ix_inner2 = leave_one_out_cv(x_train, x_train['outcome'], ddtype='all_data')
         # ix_inner2_rand_samp = np.random.choice(ix_inner2, 10, replace = False)
-        true = []
         counter = 0
         start = time.time()
 
         hazards = []
         event_times = []
         event_outcomes = []
+        probs_in = []
+        true = []
+
         model = CoxPHFitter(penalizer=lamb, l1_ratio=1.)
         for ic_in2, ix_in2 in enumerate(ix_inner2):
             start_inner = time.time()
@@ -145,7 +147,7 @@ if __name__ == "__main__":
         args.o = 'test_cox_preds'
         args.i = 'metabs'
         args.metric = 'auc'
-        feature_grid = np.logspace(3, 5, 2)
+        feature_grid = np.logspace(7, 20, 14)
 
     # if args.i == '16s':
     #     dl = dataLoader(pt_perc=.05, meas_thresh=10, var_perc=5, pt_tmpts=1)
