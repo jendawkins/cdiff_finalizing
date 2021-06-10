@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     if args.type == 'coef':
         final_res_dict = mb.nested_cv_func(model, x, y, optim_param='auc', plot_lambdas=False, learn_var=lv, \
-                                           feature_grid=feature_grid, model_2 = model_2)
+                                           feature_grid=feature_grid, model_2 = None)
 
     if args.type == 'auc':
         ixs = leave_one_out_cv(x,y)
@@ -65,7 +65,7 @@ if __name__ == "__main__":
         X_train, X_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
         final_res_dict = mb.nested_cv_func(model, X_train, y_train,optim_param = 'auc', plot_lambdas=False, learn_var = lv, \
-            feature_grid = feature_grid, model_2 = model_2)
+            feature_grid = feature_grid, model_2 = None)
     
     if 'auc' in args.type:
         with open(path_out + "_" + args.type+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
