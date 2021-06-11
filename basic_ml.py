@@ -23,7 +23,10 @@ class basic_ml():
         if 'class_weight' in params and params['class_weight'] == None:
             clf = model.fit(X, y, sample_weight = sample_weights)
         else:
-            clf = model.fit(X, y)
+            try:
+                clf = model.fit(X, y)
+            except:
+                print('why no working')
         return clf
     
     def starter(self, model, x, targets):
@@ -32,7 +35,7 @@ class basic_ml():
         else:
             seed = 0
         if isinstance(targets[0], str):
-            targets = (np.array(targets) == 'Recur').astype('float')
+            targets = (np.array(targets) == 'Recurrer').astype('float')
         else:
             targets = np.array(targets)
         y = targets
@@ -137,7 +140,6 @@ class basic_ml():
 
             model_all[ic] = clf
 
-            print('split ' + str(ic) + ' complete')
 
         ret_dict = get_metrics(ts_pred, ts_true, ts_probs)
         # print(ts_true)
@@ -179,11 +181,6 @@ class basic_ml():
                     ix_in, X, y_train, tmpts, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, \
                         test_param = lamb, var_to_learn = learn_var)
 
-                if 'coef_' in clf.get_params().keys():
-                    num_coefs = sum(clf.coef_!=0)
-                    if np.mean(num_coefs)< nzero_thresh and stop_lambdas:
-                        del lambdict[lamb]
-                        continue
                 train_auc.append(sklearn.metrics.roc_auc_score(y_train[ix_in[0]], y_probs_tr[:,1]))
             train_auc_dict[lamb] = train_auc
             # print('AUC for lambda ' + str(lamb) + '= ' + str(train_auc))
@@ -288,12 +285,12 @@ class basic_ml():
                             del lambdict[lamb]
                             continue
                     train_auc.append(sklearn.metrics.roc_auc_score(y_train[ix_in[0]], y_probs_tr[:,1]))
-                train_auc_dict[lamb][ic] = train_auc
+                train_auc_dict[lamb][ic_in] = train_auc
                 # print('AUC for lambda ' + str(lamb) + '= ' + str(train_auc))
 
                 met_dict = get_metrics(ts_pred_in, ts_true_in, ts_probs_in)
 
-                test_auc_dict[lamb][ic] = met_dict
+                test_auc_dict[lamb][ic_in] = met_dict
                 lambdict[lamb] = met_dict
                 lambdict[lamb]['loss'] = np.sum(loss_vec_in)/len(loss_vec_in)
             end = time.time()
@@ -320,7 +317,7 @@ class basic_ml():
 
             if plot_lambdas:
                 fig2, ax2 = plot_lambdas_func(lambdict, optim_param, offset, ma, best_lambda)
-                fig2.show()
+                plt.savefig('lambdas_'+ str(ic) + '_' + str(time.time()).split('.')[0] + '.pdf')
 
             if model_2 is not None:
                 temp = self.learner(model, X_train, y_train, test_param = best_lambda, var_to_learn = learn_var)
@@ -355,10 +352,6 @@ class basic_ml():
             training_probs.append((y[ix[0]], y_probs_tr))
 
             auc_score_tr.append(sklearn.metrics.roc_auc_score(y_train, y_probs_tr[:,1]))
-            print('ic: ' + str(ic))
-            print('True: ' + str(ts_true))
-            print('Probs: ' + str(ts_probs))
-            print('')
 
         ret_dict = get_metrics(ts_pred, ts_true, ts_probs)
 
@@ -370,6 +363,8 @@ class basic_ml():
         final_res_dict['train_fit'] = training_probs
         final_res_dict['train_auc'] = auc_score_tr
         final_res_dict['train_auc_inner'] = train_auc_dict
+        final_res_dict['x'] = x
+        final_res_dict['y'] = targets
         return final_res_dict
 
 

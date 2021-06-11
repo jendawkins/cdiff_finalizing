@@ -10,6 +10,7 @@ import time
 import itertools
 from dataLoader import *
 
+
 if __name__ == "__main__":
 
     start = time.time()
@@ -22,6 +23,16 @@ if __name__ == "__main__":
     parser.add_argument("-week", "--week", help="week", type=float)
     args = parser.parse_args()
     mb = basic_ml()
+
+    if not args.i:
+        args.type = 'auc'
+        args.ix = 0
+
+        args.i = 'metabs'
+        args.week = 2
+        args.o = 'test' + '_'.join(str(args.week).split('.'))
+        if not os.path.isdir(args.o):
+            os.mkdir(args.o)
 
     if not args.seed:
         args.seed = 0
@@ -57,7 +68,7 @@ if __name__ == "__main__":
 
     if args.type == 'coef':
         final_res_dict = mb.nested_cv_func(model, x, y, optim_param='auc', plot_lambdas=False, learn_var=lv, \
-                                           feature_grid=feature_grid, model_2 = None)
+                                           feature_grid=feature_grid, model_2 = None, smooth_auc = False)
 
     if args.type == 'auc':
         ixs = leave_one_out_cv(x,y)
