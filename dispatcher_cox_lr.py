@@ -96,7 +96,7 @@ os.system('bsub < {}'.format(fname))
 
 for ix in range(49):
     path_out = args.o + '/' + dattype + '/'
-    if os.path.exists(path_out + "_" + 'auc'+ "_" + str(0) + "_" + str(ix) + '.pkl','wb'):
+    if os.path.exists(path_out + "_" + 'auc'+ "_" + str(0) + "_" + str(ix) + '.pkl'):
         continue
     else:
         fname = 'cdiff_lr.lsf'
