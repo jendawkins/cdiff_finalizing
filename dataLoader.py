@@ -32,21 +32,26 @@ class dataLoader():
         self.week = {}
         self.week_one = {}
         self.week_raw = {}
+        self.week_filt = {}
         for key, value in self.keys.items():
             self.week[key] = {}
             self.week_raw[key] = {}
+            self.week_filt[key] = {}
+            value['data'] = value['data'].fillna(0)
             value['targets'] = value['targets'].replace('Recur', 'Recurrer').replace('Cleared','Non-recurrer')
             value['targets_by_pt'] = value['targets_by_pt'].replace('Recur', 'Recurrer').replace('Cleared', 'Non-recurrer')
-            value['filtered_data'] = self.filter_transform(value['data'], value['targets'], key)
+            value['filtered_data'] = self.filter_transform(value['data'], targets_by_pt = None, key = key)
             temp = self.get_week_x(value['filtered_data'], value['targets_by_pt'], week=1)
 
             self.week_one[key] = temp['x'], temp['y']
-            temp_filt = filter_by_pt(value['data'], targets=value['targets'], perc=self.pt_perc, pt_thresh=self.pt_tmpts,
+            temp_filt = filter_by_pt(value['data'], targets=None, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
                                      meas_thresh=self.meas_thresh)
             for week in [0,1,1.5,2,2.5,3,3.5,4]:
                 self.week[key][week] = self.get_week_x_step_ahead(value['filtered_data'], value['targets_by_pt'], week = week)
-                self.week_raw[key][week] = self.get_week_x_step_ahead(temp_filt, value['targets_by_pt'],
+                self.week_filt[key][week] = self.get_week_x_step_ahead(temp_filt, value['targets_by_pt'],
                                                                   week=week)
+                self.week_raw[key][week] = self.get_week_x_step_ahead(value['data'], value['targets_by_pt'],
+                                                                      week=week)
 
         ix_both = list(set(self.week_one['metabs'][0].index.values).intersection(set(self.week_one['16s'][0].index.values)))
         ix_pt = [ix.split('-')[0] for ix in ix_both]
@@ -57,7 +62,6 @@ class dataLoader():
         self.week_one['joint'] = pd.DataFrame(joint, index = ix_both, columns = cols), self.cdiff_data_dict['targets_by_pt'][ix_pt]
 
 
-        
     def load_cdiff_data(self):
         xl = pd.ExcelFile(self.path + '/' + self.filename_cdiff)
         self.cdiff_raw = xl.parse('OrigScale', header = None, index_col = None)
@@ -214,8 +218,12 @@ class dataLoader():
 
         rm_ix = []
         targets_out = {}
+        event_time = {}
         for pt in np.unique(pts):
             targets_out[pt] = 'Non-recurrer'
+            ix_pt = np.where(pt == np.array(pts))[0]
+            tm_floats = [float(tmpts[ix]) for ix in ix_pt if tmpts[ix].replace('.', '').isnumeric()]
+            event_time[pt] = tm_floats[-1]
             if targets[pt] == 'Recurrer':
                 ix_pt = np.where(pt == np.array(pts))[0]
                 tm_floats = [float(tmpts[ix]) for ix in ix_pt if tmpts[ix].replace('.','').isnumeric()]
@@ -233,7 +241,7 @@ class dataLoader():
         pt_keys_1 = np.array([pt + '-' + str(week) for pt in pt_keys])
         data_w1 = data.loc[pt_keys_1]
         targs = pd.Series(targets_out)[pt_keys]
-        return {'x':data_w1,'y_step_ahead':targs, 'y_eventually':targets[pt_keys]}
+        return {'x':data_w1,'y_step_ahead':targs, 'y':targets[pt_keys], 'event_times': pd.Series(event_time)[pt_keys]}
 
     def get_step_ahead(self, data, targets):
         ixs = targets.index.values

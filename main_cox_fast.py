@@ -24,13 +24,13 @@ def train_cox(x):
     event_times = []
     event_outcomes = []
     model_out_dict = {}
-    ix_inner = leave_one_out_cv(x, x['outcome'], ddtype='all_data')
+    ix_inner = leave_one_out_cv(x, x['outcome'])
     lambda_dict = {}
     for ic_in, ix_in in enumerate(ix_inner):
         train_index, test_index = ix_in
         x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
 
-        ix_inner2 = leave_one_out_cv(x_train, x_train['outcome'], ddtype='all_data')
+        ix_inner2 = leave_one_out_cv(x_train, x_train['outcome'])
         lamb_dict = {}
         lamb_dict['auc'] = {}
         lamb_dict['ci'] = {}
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--o", help="outpath", type=str)
     parser.add_argument("-i", "--i", help="inpath", type=str)
     parser.add_argument("-type", "--type", help="inpath", type=str)
-    parser.add_argument("-week", "--week", help="week", type=str)
+    parser.add_argument("-week", "--week", help="week", type=int)
     args = parser.parse_args()
     mb = basic_ml()
 
@@ -137,6 +137,7 @@ if __name__ == "__main__":
     data = dl.week[args.i][args.week]
     x, outcomes, event_times = data['x'], data['y'], data['event_times']
 
+    x.index = [xind.split('-')[0] for xind in x.index.values]
     x['week'] = event_times
     x['outcome'] = (np.array(outcomes) == 'Recurrer').astype(float)
 
@@ -146,7 +147,7 @@ if __name__ == "__main__":
         os.mkdir(path_out)
 
     if args.type == 'auc':
-        ixs = leave_one_out_cv(x, x['outcome'], ddtype='all_data')
+        ixs = leave_one_out_cv(x, x['outcome'])
         train_index, test_index = ixs[args.ix]
         x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
 

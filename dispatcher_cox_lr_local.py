@@ -30,7 +30,7 @@ if not args.o:
     args.o = out_path
 
 inputs = 'metabs'
-max_load = 30
+max_load = 2
 pid_list = []
 
 cmnd = my_str.format(0, inputs, args.o, 'coef', args.week)
