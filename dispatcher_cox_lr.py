@@ -70,7 +70,7 @@ my_str_lr = '''python ./main_parallel.py -ix {0} -i {1} -o {2} -type {3} -week {
 parser = argparse.ArgumentParser()
 parser.add_argument("-o","--o",help = 'out file', type = str)
 parser.add_argument("-model","--model",help = 'model', type = str)
-parser.add_argument("-week","--week",help = 'week', type = int)
+parser.add_argument("-week","--week",help = 'week', type = float)
 args = parser.parse_args()
 
 if args.model == 'cox':

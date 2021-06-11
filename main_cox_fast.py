@@ -120,7 +120,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--o", help="outpath", type=str)
     parser.add_argument("-i", "--i", help="inpath", type=str)
     parser.add_argument("-type", "--type", help="inpath", type=str)
-    parser.add_argument("-week", "--week", help="week", type=int)
+    parser.add_argument("-week", "--week", help="week", type=float)
     args = parser.parse_args()
     mb = basic_ml()
 
