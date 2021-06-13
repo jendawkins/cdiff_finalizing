@@ -253,6 +253,8 @@ class basic_ml():
         train_auc_outer = []
         auc_score_tr = []
         test_auc_dict={}
+        # final_res_dict['lambdict'] = {}
+        # final_res_dict['train_auc_inner'] = {}
         for ic, ix in enumerate(ixs):
             train_index, test_index = ix
             X_train, X_test = X[train_index, :], X[test_index, :]
@@ -285,12 +287,12 @@ class basic_ml():
                             del lambdict[lamb]
                             continue
                     train_auc.append(sklearn.metrics.roc_auc_score(y_train[ix_in[0]], y_probs_tr[:,1]))
-                train_auc_dict[lamb][ic_in] = train_auc
+                train_auc_dict[lamb][ic] = train_auc
                 # print('AUC for lambda ' + str(lamb) + '= ' + str(train_auc))
 
                 met_dict = get_metrics(ts_pred_in, ts_true_in, ts_probs_in)
 
-                test_auc_dict[lamb][ic_in] = met_dict
+                test_auc_dict[lamb][ic] = met_dict
                 lambdict[lamb] = met_dict
                 lambdict[lamb]['loss'] = np.sum(loss_vec_in)/len(loss_vec_in)
             end = time.time()
@@ -352,17 +354,16 @@ class basic_ml():
             training_probs.append((y[ix[0]], y_probs_tr))
 
             auc_score_tr.append(sklearn.metrics.roc_auc_score(y_train, y_probs_tr[:,1]))
-
+        final_res_dict['lambdict'] = test_auc_dict
+        final_res_dict['train_auc_inner'] = train_auc_dict
         ret_dict = get_metrics(ts_pred, ts_true, ts_probs)
 
         final_res_dict['best_lambda'] = best_lambdas
         final_res_dict['metrics'] = ret_dict
         final_res_dict['coef'] = coefs_all
         final_res_dict['model'] = model_all
-        final_res_dict['lambdict'] = test_auc_dict
         final_res_dict['train_fit'] = training_probs
         final_res_dict['train_auc'] = auc_score_tr
-        final_res_dict['train_auc_inner'] = train_auc_dict
         final_res_dict['x'] = x
         final_res_dict['y'] = targets
         return final_res_dict

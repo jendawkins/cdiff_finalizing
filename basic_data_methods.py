@@ -93,6 +93,7 @@ def plot_PCA(finalDf, variance, targets, path = 'pca', target_labels=None, fig_t
             a,b = (0,1)
         else:
             a, b = (1,0)
+
         all_targs = np.concatenate([list(zip(tlabs[a],x)) for x in itertools.permutations(tlabs[b],len(tlabs[a]))])
         lines_1 = {}
         lines_2 = {}
@@ -112,8 +113,13 @@ def plot_PCA(finalDf, variance, targets, path = 'pca', target_labels=None, fig_t
             if targ[b] == '0':
                 if targ[a] not in lines_1.keys():
                     lines_1[targ[a]] = line_temp
-        legend1 = plt.legend(lines_2.values(), ['Week ' + str(tt) for tt in tlabs[b]], loc = 1)
-        legend2 = plt.legend(lines_1.values(), tlabs[a], loc = 2)
+
+        k2, v2 = lines_2.items()
+        legend1 = plt.legend(v2, ['Week ' + str(tt) for tt in k2], loc = 1)
+        k1, v1 = lines_1.items()
+        if target_labels:
+            k1 = [target_labels[k] for k in k1]
+        legend2 = plt.legend(v1, k1, loc = 2)
         fig.add_artist(legend1)
         fig.add_artist(legend2)
     else:
