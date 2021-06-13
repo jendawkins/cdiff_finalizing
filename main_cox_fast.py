@@ -45,9 +45,11 @@ def train_cox(x):
             start_inner = time.time()
 
             train_ix, test_ix = ix_in2
-            x_tr2, x_ts2 = x.iloc[train_ix, :], x.iloc[test_ix, :]
+            x_tr2, x_ts2 = x_train.iloc[train_ix, :], x_train.iloc[test_ix, :]
             week = x_tr2['week']
             outcome = x_tr2['outcome']
+            if (outcome == 0).all():
+                continue
             x_tr2_ = x_tr2.drop(['week', 'outcome'], axis=1)
             yy = list(zip(outcome, week))
             y_arr = np.array(yy, dtype=[('e.tdm', '?'), ('t.tdm', '<f8')])
