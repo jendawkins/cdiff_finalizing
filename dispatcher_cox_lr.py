@@ -87,16 +87,16 @@ if not args.o:
     args.o = out_path
 
 dattype = 'metabs'
-
+path_out = args.o + '/' + dattype + '/'
 fname = 'cdiff_lr.lsf'
-f = open(fname, 'w')
-f.write(my_str.format(0, dattype, args.o, 'coef', args.week))
-f.close()
-os.system('bsub < {}'.format(fname))
+if not os.path.exists(path_out + 'coef' + "_" + str(0) + '.pkl'):
+    f = open(fname, 'w')
+    f.write(my_str.format(0, dattype, args.o, 'coef', args.week))
+    f.close()
+    os.system('bsub < {}'.format(fname))
 
 for ix in range(49):
-    path_out = args.o + '/' + dattype + '/'
-    if os.path.exists(path_out + "_" + 'auc'+ "_" + str(0) + "_" + str(ix) + '.pkl'):
+    if os.path.exists(path_out + 'auc'+ "_" + str(0) + "_" + str(ix) + '.pkl'):
         continue
     else:
         fname = 'cdiff_lr.lsf'
