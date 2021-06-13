@@ -277,6 +277,8 @@ class basic_ml():
                 ts_probs_in = []
                 train_auc = []
                 for ic_in,ix_in in enumerate(ixs_inner):
+                    if (y_train[ix_in[0]] == 0).all():
+                        continue
                     ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, clf, y_probs_tr = self.train_func(model,
                         ix_in, X_train, y_train, tmpts, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in,
                             test_param = lamb, var_to_learn = learn_var)
