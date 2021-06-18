@@ -27,7 +27,7 @@ if len(args.week) > 1:
     args.week = '_'.join([str(w) for w in args.week])
     args.week = args.week.replace('.','a')
 
-out_path = 'FinalRuns/' + args.model + '_week' + args.week
+out_path = 'FinalRuns/' + args.model + '_week' + str(args.week)
 if not os.path.isdir(out_path):
     os.mkdir(out_path)
 if not args.o:
