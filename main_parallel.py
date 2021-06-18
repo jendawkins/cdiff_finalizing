@@ -9,6 +9,7 @@ import os
 import time
 import itertools
 from dataLoader import *
+from sklearn.linear_model import LogisticRegression
 
 
 if __name__ == "__main__":
@@ -20,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument("-ix", "--ix", help = "index for splits", type = int)
     parser.add_argument("-o", "--o", help = "outpath", type = str)
     parser.add_argument("-i", "--i", help = "inpath", type = str)
-    parser.add_argument("-week", "--week", help="week", type=float)
+    parser.add_argument("-week", "--week", help="week", type=str)
     args = parser.parse_args()
     mb = basic_ml()
 
@@ -29,20 +30,28 @@ if __name__ == "__main__":
         args.ix = 0
 
         args.i = 'metabs'
-        args.week = 2
+        args.week = 1.5
         args.o = 'test' + '_'.join(str(args.week).split('.'))
         if not os.path.isdir(args.o):
             os.mkdir(args.o)
-
-    if not args.seed:
-        args.seed = 0
+    else:
+        args.week = [float(w) for w in args.week.split('_')]
 
     if args.i == '16s':
         dl = dataLoader(pt_perc = .05, meas_thresh = 10, var_perc = 5, pt_tmpts = 1)
     else:
         dl = dataLoader(pt_perc=.25, meas_thresh=0, var_perc=15, pt_tmpts=1)
-    data = dl.week[args.i][args.week]
-    x, y = data['x'], data['y']
+    if isinstance(args.week, list):
+        x, y, event_times = get_slope_data(dl.week[args.i], args.week)
+    else:
+        data = dl.week[args.i][args.week]
+        x, y, event_times = data['x'], data['y'], data['event_times']
+
+    x.index = [xind.split('-')[0] for xind in x.index.values]
+
+    if not args.seed:
+        args.seed = 0
+
 
     if isinstance(y[0], str):
         y = (np.array(y) == 'Recurrer').astype('float')
@@ -79,11 +88,11 @@ if __name__ == "__main__":
             feature_grid = feature_grid, model_2 = None)
     
     if 'auc' in args.type:
-        with open(path_out + "_" + args.type+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
-            pickle.dump(final_res_dict, f)
+        with open(path_out + args.type+ "_" + str(args.seed) + "_" + str(args.ix) + '.pkl','wb') as f:
+            pkl.dump(final_res_dict, f)
     else:
         with open(path_out + "_" + args.type+ "_" + str(args.seed) + '.pkl','wb') as f:
-            pickle.dump(final_res_dict, f)
+            pkl.dump(final_res_dict, f)
     
     end = time.time()
     passed = np.round((end - start)/60, 3)

@@ -1,10 +1,11 @@
 from helper import *
-from ml_methods import *
 from datetime import datetime
 import sklearn
 import time
 import pickle as pkl
 import argparse
+from sklearn.linear_model import LogisticRegression
+from sklearn.base import clone
 
 class basic_ml():
     def __init__(self):
@@ -43,13 +44,16 @@ class basic_ml():
         return seed, X, y
 
 
-    def train_func(self, model, ix_in, X, y, tmpts, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, test_param = None, var_to_learn = None):
+    def train_func(self, model, ix_in, X, y, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, test_param = None, var_to_learn = None, tmpts = None):
         train_index_in, test_index_in = ix_in
         X_train_in, X_test_in = X[train_index_in, :], X[test_index_in, :]
         y_train_in, y_test_in = y[train_index_in], y[test_index_in]
-        tmpts_train_in = tmpts[train_index_in]
-        coefs_all_in = []
-        samp_weights = get_class_weights(y_train_in, tmpts_train_in)
+        if tmpts is not None:
+            tmpts_train_in = tmpts[train_index_in]
+            coefs_all_in = []
+            samp_weights = get_class_weights(y_train_in, tmpts_train_in)
+        else:
+            samp_weights = None
 
         clf = self.learner(model, X_train_in, y_train_in, test_param, var_to_learn, sample_weights = samp_weights) 
         
@@ -238,14 +242,17 @@ class basic_ml():
         final_res_dict = {}
 
         ixs = split_outer(x, y, folds = folds, ddtype = ttype)
-        tmpts = np.array([ix.split('-')[1] for ix in x.index.values])
+        try:
+            tmpts = np.array([ix.split('-')[1] for ix in x.index.values])
+        except:
+            tmpts = None
 
         ts_true = []
         ts_pred = []
         loss_vec = []
         ts_probs = []
         coefs_all = {}
-        model_all = {}
+        model_all = []
         best_lambdas = []
         best_auc_vec = []
         best_auc_vec_ma = []
@@ -280,8 +287,8 @@ class basic_ml():
                     if (y_train[ix_in[0]] == 0).all():
                         continue
                     ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in, clf, y_probs_tr = self.train_func(model,
-                        ix_in, X_train, y_train, tmpts, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in,
-                            test_param = lamb, var_to_learn = learn_var)
+                        ix_in, X_train, y_train, ts_true_in, ts_pred_in, ts_probs_in, loss_vec_in,
+                            test_param = lamb, var_to_learn = learn_var, tmpts = tmpts)
 
                     if 'coef_' in clf.get_params().keys():
                         num_coefs = sum(clf.coef_!=0)
@@ -334,18 +341,16 @@ class basic_ml():
                 if X_filt.shape[1] == 0:
                     X_filt = X.copy()
                     print('ix ' + str(test_index) + ' no coefs')
-                ts_true, ts_pred, ts_probs, loss_vec, clf, y_probs_tr = self.train_func(model_2, ix, X_filt, y, tmpts,
-                    ts_true, ts_pred, ts_probs, loss_vec, test_param = None, var_to_learn = None)
+                ts_true, ts_pred, ts_probs, loss_vec, clf, y_probs_tr = self.train_func(model_2, ix, X_filt, y,
+                    ts_true, ts_pred, ts_probs, loss_vec, test_param = None, var_to_learn = None, tmpts = None)
             else:
-                ts_true, ts_pred, ts_probs, loss_vec, clf, y_probs_tr = self.train_func(model, ix, X, y, tmpts,
+                ts_true, ts_pred, ts_probs, loss_vec, clf, y_probs_tr = self.train_func(model, ix, X, y,
                                                                                         ts_true, ts_pred, ts_probs,
                                                                                         loss_vec,
                                                                                         test_param=best_lambda,
-                                                                                        var_to_learn=learn_var)
+                                                                                        var_to_learn=learn_var, tmpts = None)
 
-            if 'coef_' in clf.get_params().keys():
-                coefs_all[ic] = clf.coef_
-            model_all[ic] = clf
+            model_all.append(clone(clf))
 
             # print('split ' + str(ic) + ' complete')
             best_lambdas.append(best_lambda)
