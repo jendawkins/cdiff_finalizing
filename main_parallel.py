@@ -36,6 +36,8 @@ if __name__ == "__main__":
             os.mkdir(args.o)
     else:
         args.week = [float(w) for w in args.week.split('_')]
+    if len(args.week)==1:
+        args.week = args.week[0]
 
     if args.i == '16s':
         dl = dataLoader(pt_perc = .05, meas_thresh = 10, var_perc = 5, pt_tmpts = 1)
