@@ -70,7 +70,7 @@ my_str_lr = '''python ./main_parallel.py -ix {0} -i {1} -o {2} -type {3} -week {
 parser = argparse.ArgumentParser()
 parser.add_argument("-o","--o",help = 'out file', type = str)
 parser.add_argument("-model","--model",help = 'model', type = str)
-parser.add_argument("-week","--week",help = 'week', type = float)
+parser.add_argument("-week","--week",help = 'week', type = float, nargs='+')
 args = parser.parse_args()
 
 if args.model == 'cox':
@@ -80,9 +80,15 @@ elif args.model == 'LR':
 
 if not os.path.isdir('FinalRuns'):
     os.mkdir('FinalRuns')
-out_path = 'FinalRuns/' + args.model + '_week' + str(args.week)
+
+if len(args.week) > 1:
+    args.week = '_'.join([str(w) for w in args.week])
+
+
+out_path = 'FinalRuns/' + args.model + '_week' + args.week.replace('.','d')
 if not os.path.isdir(out_path):
     os.mkdir(out_path)
+
 if not args.o:
     args.o = out_path
 
