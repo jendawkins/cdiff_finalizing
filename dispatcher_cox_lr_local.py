@@ -15,7 +15,7 @@ my_str_lr = '''python ./main_parallel.py -ix {0} -i {1} -o {2} -type {3} -week {
 parser = argparse.ArgumentParser()
 parser.add_argument("-o","--o",help = 'out file', type = str)
 parser.add_argument("-model","--model",help = 'model', type = str)
-parser.add_argument("-week","--week",help = 'week', type = float)
+parser.add_argument("-week","--week",help = 'week', type = float, nargs = '+')
 args = parser.parse_args()
 
 if args.model == 'cox':
@@ -23,20 +23,22 @@ if args.model == 'cox':
 elif args.model == 'LR':
     my_str = my_str_lr
 
-out_path = 'FinalRuns/' + args.model + '_week' + str(args.week)
+if len(args.week) > 1:
+    args.week = '_'.join([str(w) for w in args.week])
+    args.week = args.week.replace('.','a')
+
+out_path = 'FinalRuns/' + args.model + '_week' + args.week
 if not os.path.isdir(out_path):
     os.mkdir(out_path)
 if not args.o:
     args.o = out_path
 
 inputs = 'metabs'
-max_load = 2
+max_load = 10
 pid_list = []
 
 cmnd = my_str.format(0, inputs, args.o, 'coef', args.week)
 args2 = cmnd.split(' ')
-print(args2)
-subprocess.Popen(args2)
 print(args2)
 pid = subprocess.Popen(args2)
 pid_list.append(pid)
@@ -44,8 +46,6 @@ pid_list.append(pid)
 for ix in np.arange(49):
     cmnd = my_str.format(ix, inputs, args.o, 'auc', args.week)
     args2 = cmnd.split(' ')
-    print(args2)
-    subprocess.Popen(args2)
     print(args2)
     pid = subprocess.Popen(args2)
     pid_list.append(pid)
