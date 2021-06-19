@@ -25,7 +25,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     mb = basic_ml()
 
-    if not args.i:
+    if args.i is None:
         args.type = 'auc'
         args.ix = 0
 
