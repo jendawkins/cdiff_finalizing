@@ -273,9 +273,10 @@ class basic_ml():
             start = time.time()
             train_auc_dict = {}
             for lamb in feature_grid:
-                lambdict[lamb] = {}
-                train_auc_dict[lamb] = {}
-                test_auc_dict[lamb] = {}
+                if lamb not in lambdict.keys():
+                    lambdict[lamb] = {}
+                    train_auc_dict[lamb] = {}
+                    test_auc_dict[lamb] = {}
 
 
                 ts_true_in = []
