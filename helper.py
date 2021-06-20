@@ -8,6 +8,54 @@ import copy
 from sklearn.model_selection import StratifiedKFold
 import os
 import scipy.stats as st
+from collections import defaultdict
+
+def get_slope_data(dat_dict, weeks):
+    df_times = pd.concat([dat_dict[week]['event_times'] for week in weeks])
+    idx = np.unique(df_times.index.values, return_index=True)[1]
+    df_times_unique = df_times.iloc[idx]
+    pts_drop = df_times_unique.index.values[df_times_unique <= np.max(weeks)]
+    df_times = df_times.drop(pts_drop)
+    counts = df_times.index.value_counts()
+    list_of_dictionaries = [{xx.split('-')[0]: xx.split('-')[1] for xx in dat_dict[week]['x'].index.values} for
+                            week in weeks]
+    dd = defaultdict(list)
+
+    for d in list_of_dictionaries:
+        for k, v in d.items():
+            dd[k].append(v)
+    slope_data = {}
+    y = {}
+    etimes = {}
+    for pt, count in counts.iteritems():
+        if count >= 2:
+            slope_data[pt], intercept = np.polyfit([float(i) for i in dd[pt]],[dat_dict[float(i)]['x'].loc[pt + '-' + i] for i in dd[pt]],1)
+            for week in weeks:
+                try:
+                    y[pt] = dat_dict[week]['y'][pt]
+                    etimes[pt] = dat_dict[week]['event_times'][pt]
+                    break
+                except:
+                    continue
+    return pd.DataFrame(slope_data, index = dat_dict[1]['x'].columns.values).T, pd.Series(y), pd.Series(etimes)
+
+def sigmoid(x):
+    return 1/(1 + np.exp(-x))
+
+def bh_corr(pvals, alpha = 0.05):
+    pvals = np.array(pvals)
+    ix_sort = np.argsort(pvals)
+    p_sort = pvals[ix_sort]
+    vec = alpha*(np.arange(1, len(pvals)+1)/len(pvals))
+    try:
+        L = np.max(np.where(p_sort <= vec)[0])
+    except:
+        L = 0
+    corrected = p_sort / (vec/alpha)
+    corrected[corrected > 1] = 1
+    corrected_f = np.zeros(len(corrected))
+    corrected_f[ix_sort] = corrected
+    return corrected_f, p_sort[L]
 
 def standardize(x,override = False):
     if not override:
@@ -88,7 +136,7 @@ def get_class_weights(y, tmpts):
         ws = len(yt)/(2* np.bincount([int(x) for x in yt]))
 
         if len(ws) == 1:
-            samp_weights[ix_tmpt] = 0
+            samp_weights[ix_tmpt] = ws[0]
         elif len(ws) == 2:
             samp_weights[ix_tmpt[ones_ix]] = ws[1]
             samp_weights[ix_tmpt[zeros_ix]] = ws[0]
@@ -192,7 +240,7 @@ def dmatrix(data, metric='e'):
 
 def get_vars(data, labels=None):
     if labels:
-        cleared = data[np.array(labels) == 'Cleared']
+        cleared = data[np.array(labels) == 'Non-recurrer']
         recur = data[np.array(labels) == 'Recur']
         within_class_vars = [np.var(cleared, 0), np.var(recur, 0)]
         class_means = [np.mean(cleared, 0), np.mean(cleared, 0)]
@@ -584,8 +632,8 @@ def leave_one_out_cv(data, labels, folds = None, ddtype = 'week_one'):
     
     if folds is not None:
         if isinstance(labels[0], str):
-            cl = np.where(labels == 'Cleared')[0]
-            re = np.where(labels == 'Recur')[0]
+            cl = np.where(labels == 'Non-recurrer')[0]
+            re = np.where(labels == 'Recurrer')[0]
         else:
             cl = np.where(labels == 0)[0]
             re = np.where(labels == 1)[0]
@@ -593,6 +641,21 @@ def leave_one_out_cv(data, labels, folds = None, ddtype = 'week_one'):
         random_select_re = np.random.choice(re, int(folds/2))
         random_select = np.append(random_select_cl, random_select_re)
         ix_all = (np.array(ix_all)[random_select]).tolist()
+    return ix_all
+
+
+def leave_two_out(data, labels, num_folds=50):
+    if isinstance(labels[0], str):
+        cl = np.where(labels == 'Non-recurrer')[0]
+        re = np.where(labels == 'Recurrer')[0]
+    else:
+        cl = np.where(labels == 0)[0]
+        re = np.where(labels == 1)[0]
+    ixs = np.arange(len(labels))
+    left_out = [list(x) for x in list(itertools.product(cl, re))]
+    ix_keep = [list(set(ixs)-set(l)) for l in left_out]
+    ix_sampled = np.random.choice(np.arange(num_folds), num_folds)
+    ix_all = zip(np.array(ix_keep)[ix_sampled], np.array(left_out)[ix_sampled])
     return ix_all
 
 
