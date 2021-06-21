@@ -252,7 +252,7 @@ class basic_ml():
         loss_vec = []
         ts_probs = []
         coefs_all = {}
-        model_all = []
+        model_all = {}
         best_lambdas = []
         best_auc_vec = []
         best_auc_vec_ma = []
@@ -351,8 +351,8 @@ class basic_ml():
                                                                                         test_param=best_lambda,
                                                                                         var_to_learn=learn_var, tmpts = None)
 
-            model_all.append(clone(clf))
-
+            # model_all.append(clone(clf))
+            model_all[ic] = clf.coef_.copy()
             # print('split ' + str(ic) + ' complete')
             best_lambdas.append(best_lambda)
 
