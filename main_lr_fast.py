@@ -10,10 +10,61 @@ import time
 import itertools
 from dataLoader import *
 import warnings
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import StratifiedKFold, GridSearchCV
 
 warnings.filterwarnings("ignore")
 
-def train_lr(x, y, lambda_min_ratio = .0001, path_len = 100, path_out = '', plot_lambdas = False):
+def train_lr_folds(x, y, lambda_min_ratio = .001, path_len = 100):
+    skf = StratifiedKFold(n_splits = 5)
+    splits = skf.split(x, y)
+    score_vec = []
+    final_res_dict = {}
+    fold = 0
+
+
+    for train_index, test_index in splits:
+        #     probs[ic] = []
+        #     train_index, test_index = ix
+        x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
+        y_train, y_test = y[train_index], y[test_index]
+        bval = True
+        lam = 0
+        while(bval):
+            lam += 0.1
+            model2 = LogisticRegression(penalty='l1', class_weight='balanced', C=1 / lam, solver='liblinear')
+            model2.fit(x_train, y_train)
+            if np.sum(np.abs(model2.coef_))<1e-8:
+                l_max = lam
+                bval = False
+        lambda_grid = np.logspace(np.log10(l_max * lambda_min_ratio), np.log10(l_max), path_len)
+        lr = LogisticRegression(penalty='l1', class_weight='balanced', solver='liblinear')
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+        clf = GridSearchCV(lr, {'C': lambda_grid}, cv = cv).fit(x_train, y_train)
+
+        cv_results = pd.DataFrame(clf.cv_results_)
+        best_model = clf.best_estimator_
+        best_coefs = pd.DataFrame(
+            best_model.coef_.T,
+            index=x_train.columns.values,
+            columns=["coefficient"]
+        )
+
+        pred_prob = best_model.predict_proba(x_test)
+        auc = sklearn.metrics.roc_auc_score(y_test, pred_prob[:,1])
+        score_vec.append(auc)
+        final_res_dict[fold] = {}
+        final_res_dict[fold]['score'] = auc
+        final_res_dict[fold]['best_model'] = best_model
+        final_res_dict[fold]['best_coefs'] = best_coefs
+        final_res_dict[fold]['train_test'] = (x_train, x_test)
+        fold += 1
+    return final_res_dict
+
+
+def train_lr(x, y, lambda_min_ratio = .001, path_len = 100, path_out = '', plot_lambdas = False):
     # if feature_grid is None:
     #     feature_grid = np.logspace(7, 20, 14)
     probs = []
@@ -38,8 +89,7 @@ def train_lr(x, y, lambda_min_ratio = .0001, path_len = 100, path_out = '', plot
 
         ix_inner2 = leave_one_out_cv(x_train, y_train)
         lamb_dict = {}
-        lamb_dict['auc'] = {}
-        lamb_dict['ci'] = {}
+        lamb_dict['score'] = {}
 
         model_dict = {}
         test_probs = {}
@@ -48,6 +98,17 @@ def train_lr(x, y, lambda_min_ratio = .0001, path_len = 100, path_out = '', plot
 
         if sum(y_train)==1:
             continue
+
+        bval = True
+        lam = 0
+        while(bval):
+            lam += 0.1
+            model2 = LogisticRegression(penalty='l1', class_weight='balanced', C=1 / lam, solver='liblinear')
+            model2.fit(x_train, y_train)
+            if np.sum(np.abs(model2.coef_))<1e-8:
+                l_max = lam
+                bval = False
+        l_path = np.logspace(np.log10(l_max * lambda_min_ratio), np.log10(l_max), path_len)
         for ic_in2, ix_in2 in enumerate(ix_inner2):
             start_inner = time.time()
 
@@ -57,15 +118,6 @@ def train_lr(x, y, lambda_min_ratio = .0001, path_len = 100, path_out = '', plot
 
             if sum(y_tr2)==0:
                 continue
-
-            if ic_in == 0 and ic_in2 == 0:
-                for i, lam in enumerate(l_path):
-                    model2 = LogisticRegression(penalty='l1', class_weight='balanced', C=1 / lam, solver='liblinear')
-                    model2.fit(x_tr2, y_tr2)
-                    if (abs(model2.coef_)<=1e-8).all():
-                        l_max = lam
-                        l_path = np.logspace(np.log10(l_max * lambda_min_ratio), np.log10(l_max), path_len)
-                        break
 
             for i,lam in enumerate(l_path):
                 model2 = LogisticRegression(penalty='l1', class_weight='balanced', C = 1/lam, solver = 'liblinear')
@@ -112,7 +164,7 @@ def train_lr(x, y, lambda_min_ratio = .0001, path_len = 100, path_out = '', plot
     score = sklearn.metrics.roc_auc_score(outcomes, probs)
 
     final_dict = {}
-    final_dict['auc'] = score
+    final_dict['score'] = score
     final_dict['model'] = model_out_dict
     final_dict['probs'] = probs
     final_dict['outcomes'] = outcomes
@@ -128,18 +180,28 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--o", help="outpath", type=str)
     parser.add_argument("-i", "--i", help="inpath", type=str)
     parser.add_argument("-type", "--type", help="inpath", type=str)
-    parser.add_argument("-week", "--week", help="week", type=float)
+    parser.add_argument("-week", "--week", help="week", type=str)
+    parser.add_argument("-folds", "--folds", help="use_folds", type=str)
     args = parser.parse_args()
     mb = basic_ml()
 
-    if not args.ix:
-        args.ix = 7
+    if args.ix is None:
+        args.ix = 0
         args.o = 'test_lr_fast'
         if not os.path.isdir(args.o):
             os.mkdir(args.o)
         args.i = 'metabs'
         args.type = 'auc'
-        args.week = [0,1.5,2]
+        args.week = 1
+    else:
+        args.week = [float(w) for w in args.week.split('_')]
+
+    if args.folds is None:
+        args.folds = 1
+
+    if isinstance(args.week, list):
+        if len(args.week)==1:
+            args.week = args.week[0]
 
     if args.i == '16s':
         dl = dataLoader(pt_perc=.05, meas_thresh=10, var_perc=5, pt_tmpts=1)
@@ -167,17 +229,27 @@ if __name__ == "__main__":
         x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train0, y_test0 = y[train_index], y[test_index]
 
-        final_res_dict = train_lr(x_train0, y_train0, path_out = path_out)
+        if args.folds == 1:
+            final_res_dict = train_lr_folds(x_train0, y_train0)
+        else:
+            final_res_dict = train_lr(x_train0, y_train0, path_out = path_out)
     elif args.type == 'coef':
-        final_res_dict = train_lr(x,y, path_out = path_out)
+        if args.folds == 1:
+            final_res_dict = train_lr_folds(x,y)
+        else:
+            final_res_dict = train_lr(x,y, path_out = path_out)
 
     final_res_dict['data'] = (x, y)
 
     with open(path_out + args.type + '_ix_' + str(args.ix)+ '.pkl', 'wb') as f:
-        pickle.dump(final_res_dict, f)
+        pkl.dump(final_res_dict, f)
 
     end = time.time()
     passed = np.round((end - start) / 60, 3)
     f2 = open(args.o + '/' + args.i + ".txt", "a")
-    f2.write('index ' + str(args.ix) + ', CI ' + str(final_res_dict['auc']) +' in ' + str(passed) + ' minutes' + '\n')
+    try:
+        f2.write('index ' + str(args.ix) + ', CI ' + str(final_res_dict['score']) +' in ' + str(passed) + ' minutes' + '\n')
+    except:
+        f2.write(
+            'index ' + str(args.ix) + ' in ' + str(passed) + ' minutes' + '\n')
     f2.close()

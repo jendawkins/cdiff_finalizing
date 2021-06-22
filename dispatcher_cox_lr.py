@@ -65,7 +65,8 @@ cd /PHShome/jjd65/cdiff_finalizing
 
 my_str_cox = '''python ./main_cox_fast.py -ix {0} -i {1} -o {2} -type {3} -week {4}'''
 
-my_str_lr = '''python ./main_parallel.py -ix {0} -i {1} -o {2} -type {3} -week {4}'''
+# my_str_lr = '''python ./main_parallel.py -ix {0} -i {1} -o {2} -type {3} -week {4}'''
+my_str_lr = '''python ./main_lr_fast.py -ix {0} -i {1} -o {2} -type {3} -week {4}'''
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-o","--o",help = 'out file', type = str)

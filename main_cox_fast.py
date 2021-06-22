@@ -8,12 +8,77 @@ import os
 import time
 import itertools
 from dataLoader import *
-import warnings
-from sksurv.linear_model import CoxnetSurvivalAnalysis
+from sksurv.linear_model import CoxnetSurvivalAnalysis, CoxPHSurvivalAnalysis
 from sksurv.metrics import concordance_index_censored
+import warnings
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import StratifiedKFold, GridSearchCV
 warnings.filterwarnings("ignore")
 
-def train_cox(x, split_to_folds = leave_two_out):
+def train_with_folds(x):
+    skf = StratifiedKFold(n_splits=5)
+    splits = skf.split(x, x['outcome'])
+
+    score_vec = []
+    final_res_dict = {}
+    fold = 0
+    for train_index, test_index in splits:
+        #     probs[ic] = []
+        #     train_index, test_index = ix
+        x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
+        week = x_train['week']
+        outcome = x_train['outcome']
+        x_train_ = x_train.drop(['week', 'outcome'], axis=1)
+        yy = list(zip(outcome, week))
+        y_arr = np.array(yy, dtype=[('e.tdm', '?'), ('t.tdm', '<f8')])
+        coxnet_pipe = make_pipeline(
+            StandardScaler(),
+            CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=0.001)
+        )
+        warnings.simplefilter("ignore")
+        coxnet_pipe.fit(x_train_, y_arr)
+
+        estimated_alphas = coxnet_pipe.named_steps["coxnetsurvivalanalysis"].alphas_
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+        gcv = GridSearchCV(
+            make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1)),
+            param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in estimated_alphas]},
+            cv=cv,
+            error_score=0.5,
+            n_jobs=4).fit(x_train_, y_arr)
+
+        cv_results = pd.DataFrame(gcv.cv_results_)
+        alphas = cv_results.param_coxnetsurvivalanalysis__alphas.map(lambda x: x[0])
+        best_model = gcv.best_estimator_.named_steps["coxnetsurvivalanalysis"]
+        best_coefs = pd.DataFrame(
+            best_model.coef_,
+            index=x_train_.columns,
+            columns=["coefficient"]
+        )
+        best_alpha = best_model.alphas
+        #     model_out = CoxnetSurvivalAnalysis(l1_ratio=1, alphas = best_alpha)
+        #     model_out.fit(x_train_, y_arr)
+
+        week = x_test['week']
+        outcome = x_test['outcome']
+        x_test_ = x_test.drop(['week', 'outcome'], axis=1)
+        yy = list(zip(outcome, week))
+        y_arr = np.array(yy, dtype=[('e.tdm', '?'), ('t.tdm', '<f8')])
+
+        score_ix = best_model.score(x_test_, y_arr)
+        score_vec.append(score_ix)
+        final_res_dict[fold] = {}
+        final_res_dict[fold]['score'] = score_ix
+        final_res_dict[fold]['best_model'] = best_model
+        final_res_dict[fold]['best_coefs'] = best_coefs
+        final_res_dict[fold]['train_test'] = (x_train, x_test)
+        fold += 1
+    return final_res_dict
+
+
+def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out):
     # if feature_grid is None:
     #     feature_grid = np.logspace(7, 20, 14)
     hazards = []
@@ -21,17 +86,23 @@ def train_cox(x, split_to_folds = leave_two_out):
     event_outcomes = []
     score_vec = []
     model_out_dict = {}
-    ix_inner = split_to_folds(x, x['outcome'])
+    ix_inner = outer_split(x, x['outcome'], num_folds = None)
     lambda_dict = {}
     for ic_in, ix_in in enumerate(ix_inner):
         train_index, test_index = ix_in
         x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
 
-        ix_inner2 = split_to_folds(x_train, x_train['outcome'])
+        week = x_train['week']
+        outcome = x_train['outcome']
+        x_train_ = x_train.drop(['week','outcome'], axis = 1)
+        yy = list(zip(outcome, week))
+        y_arr = np.array(yy, dtype = [('e.tdm', '?'), ('t.tdm', '<f8')])
+
+        ix_inner2 = inner_split(x_train, x_train['outcome'], num_folds = None)
         lamb_dict = {}
         lamb_dict['auc'] = {}
         lamb_dict['ci'] = {}
-        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=.0001, n_alphas=100)
+        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=.001, n_alphas=100)
 
         model_dict = {}
         alphas = None
@@ -39,6 +110,15 @@ def train_cox(x, split_to_folds = leave_two_out):
         e_times_dict = {}
         e_outcomes_dict = {}
         score_dict = {}
+
+        coxnet_pipe = make_pipeline(
+            StandardScaler(),
+            CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=0.001, max_iter=100)
+        )
+        warnings.simplefilter("ignore", ConvergenceWarning)
+        coxnet_pipe.fit(x_train_, y_arr)
+        alphas = coxnet_pipe.named_steps["coxnetsurvivalanalysis"].alphas_
+
         for ic_in2, ix_in2 in enumerate(ix_inner2):
             start_inner = time.time()
 
@@ -49,13 +129,13 @@ def train_cox(x, split_to_folds = leave_two_out):
             if (outcome == 0).all():
                 continue
             x_tr2_ = x_tr2.drop(['week', 'outcome'], axis=1)
-            yy = list(zip(outcome, week))
-            y_arr = np.array(yy, dtype=[('e.tdm', '?'), ('t.tdm', '<f8')])
+            yy2 = list(zip(outcome, week))
+            y_arr2 = np.array(yy2, dtype=[('e.tdm', '?'), ('t.tdm', '<f8')])
             model2.set_params(alphas=alphas)
-            model2.fit(x_tr2_, y_arr)
-            alphas_new = model2.alphas_
-            if ic_in2 == 0:
-                alphas = alphas_new
+            model2.fit(x_tr2_, y_arr2)
+            # alphas_new = model2.alphas_
+            # if ic_in2 == 0:
+            #     alphas = alphas_new
 
             model_dict[ic_in2] = model2
             for i, alpha in enumerate(alphas):
@@ -91,11 +171,7 @@ def train_cox(x, split_to_folds = leave_two_out):
         lambda_dict[ic_in] = {'best_lambda': best_lamb, 'scores': scores, 'event_outcomes':event_outcomes, 'times':event_times,
                        'hazards':hazards, 'lambdas_tested': alphas}
         model_out = CoxnetSurvivalAnalysis(l1_ratio = 1, alphas = alphas)
-        week = x_train['week']
-        outcome = x_train['outcome']
-        x_train_ = x_train.drop(['week','outcome'], axis = 1)
-        yy = list(zip(outcome, week))
-        y_arr = np.array(yy, dtype = [('e.tdm', '?'), ('t.tdm', '<f8')])
+
         model_out.fit(x_train_, y_arr)
 
         risk_scores = model_out.predict(x_test.drop(['week', 'outcome'], axis=1), alpha = best_lamb)
@@ -116,7 +192,7 @@ def train_cox(x, split_to_folds = leave_two_out):
             np.array(np.concatenate(event_times)), np.array(np.concatenate(hazards)))
 
     final_dict = {}
-    final_dict['ci'] = score
+    final_dict['score'] = score
     final_dict['model'] = model_out_dict
     final_dict['hazards'] = hazards
     final_dict['event_times'] = event_times
@@ -135,6 +211,7 @@ if __name__ == "__main__":
     parser.add_argument("-type", "--type", help="inpath", type=str)
     parser.add_argument("-week", "--week", help="week", type=str)
     parser.add_argument("-seed", "--seed", help="seed", type=int)
+    parser.add_argument("-folds", "--folds", help="use_folds", type=int)
     args = parser.parse_args()
 
     if args.ix is None:
@@ -145,6 +222,9 @@ if __name__ == "__main__":
         args.week = 1
     else:
         args.week = [float(w) for w in args.week.split('_')]
+
+    if args.folds is None:
+        args.folds = 1
 
     if args.seed is None:
         args.seed = 0
@@ -178,9 +258,15 @@ if __name__ == "__main__":
         train_index, test_index = ixs[args.ix]
         x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
 
-        final_res_dict = train_cox(x_train0)
+        if args.folds == 1:
+            final_res_dict = train_with_folds(x_train0)
+        else:
+            final_res_dict = train_cox(x_train0)
     elif args.type == 'coef':
-        final_res_dict = train_cox(x)
+        if args.folds == 1:
+            final_res_dict = train_with_folds(x)
+        else:
+            final_res_dict = train_cox(x)
 
     final_res_dict['data'] = x
 
@@ -190,7 +276,11 @@ if __name__ == "__main__":
     end = time.time()
     passed = np.round((end - start) / 60, 3)
     f2 = open(args.o + '/' + args.i + ".txt", "a")
-    f2.write('index ' + str(args.ix) + ', CI ' + str(final_res_dict['ci']) +' in ' + str(passed) + ' minutes' + '\n')
+    try:
+        f2.write('index ' + str(args.ix) + ', CI ' + str(final_res_dict['score']) +' in ' + str(passed) + ' minutes' + '\n')
+    except:
+        f2.write(
+            'index ' + str(args.ix) + ' in ' + str(passed) + ' minutes' + '\n')
     f2.close()
 
 # Get coefficients from nested CV
