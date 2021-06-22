@@ -63,14 +63,15 @@ echo $TMPDIR
 cd /PHShome/jjd65/cdiff_finalizing
 '''
 
-my_str_cox = '''python ./main_cox_fast.py -ix {0} -i {1} -o {2} -type {3} -week {4}'''
+my_str_cox = '''python ./main_cox_fast.py -ix {0} -i {1} -o {2} -type {3} -week {4} -folds {5}'''
 
 # my_str_lr = '''python ./main_parallel.py -ix {0} -i {1} -o {2} -type {3} -week {4}'''
-my_str_lr = '''python ./main_lr_fast.py -ix {0} -i {1} -o {2} -type {3} -week {4}'''
+my_str_lr = '''python ./main_lr_fast.py -ix {0} -i {1} -o {2} -type {3} -week {4} -folds {5}'''
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-o","--o",help = 'out file', type = str)
 parser.add_argument("-model","--model",help = 'model', type = str)
+parser.add_argument("-folds","--folds",help = 'use_folds', type = str)
 parser.add_argument("-week","--week",help = 'week', type = float, nargs='+')
 args = parser.parse_args()
 
@@ -79,8 +80,8 @@ if args.model == 'cox':
 elif args.model == 'LR':
     my_str = my_str + my_str_lr
 
-if not os.path.isdir('FinalRuns'):
-    os.mkdir('FinalRuns')
+if not os.path.isdir('FinalFolds'):
+    os.mkdir('FinalFolds')
 
 if len(args.week) > 1:
     args.week = '_'.join([str(w) for w in args.week])
@@ -89,7 +90,7 @@ else:
     args.week = args.week[0]
     wname= args.week
 
-out_path = 'FinalRuns/' + args.model + '_week' + str(wname)
+out_path = 'FinalFolds/' + args.model + '_week' + str(wname)
 
 if not os.path.isdir(out_path):
     os.mkdir(out_path)
@@ -102,7 +103,7 @@ path_out = args.o + '/' + dattype + '/'
 fname = 'cdiff_lr.lsf'
 if not os.path.exists(path_out + 'coef' + "_" + str(0) + '.pkl'):
     f = open(fname, 'w')
-    f.write(my_str.format(0, dattype, args.o, 'coef', args.week))
+    f.write(my_str.format(0, dattype, args.o, 'coef', args.week, args.folds))
     f.close()
     os.system('bsub < {}'.format(fname))
 
@@ -112,7 +113,7 @@ for ix in range(49):
     else:
         fname = 'cdiff_lr.lsf'
         f = open(fname, 'w')
-        f.write(my_str.format(ix, dattype, args.o, 'auc', args.week))
+        f.write(my_str.format(ix, dattype, args.o, 'auc', args.week, args.folds))
         f.close()
         os.system('bsub < {}'.format(fname))
 
