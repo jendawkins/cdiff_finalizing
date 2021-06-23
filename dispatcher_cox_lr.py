@@ -80,8 +80,8 @@ if args.model == 'cox':
 elif args.model == 'LR':
     my_str = my_str + my_str_lr
 
-if not os.path.isdir('FinalFolds'):
-    os.mkdir('FinalFolds')
+if not os.path.isdir('FinalRuns'):
+    os.mkdir('FinalRuns')
 
 if len(args.week) > 1:
     args.week = '_'.join([str(w) for w in args.week])
