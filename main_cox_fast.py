@@ -86,7 +86,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out):
     event_outcomes = []
     score_vec = []
     model_out_dict = {}
-    ix_inner = outer_split(x, x['outcome'], num_folds = None)
+    ix_inner = outer_split(x, x['outcome'], num_folds=100)
     lambda_dict = {}
     for ic_in, ix_in in enumerate(ix_inner):
         train_index, test_index = ix_in
@@ -98,7 +98,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out):
         yy = list(zip(outcome, week))
         y_arr = np.array(yy, dtype = [('e.tdm', '?'), ('t.tdm', '<f8')])
 
-        ix_inner2 = inner_split(x_train, x_train['outcome'], num_folds = None)
+        ix_inner2 = inner_split(x_train, x_train['outcome'], num_folds = 100)
         lamb_dict = {}
         lamb_dict['auc'] = {}
         lamb_dict['ci'] = {}
@@ -224,11 +224,12 @@ if __name__ == "__main__":
         args.week = [float(w) for w in args.week.split('_')]
 
     if args.folds is None:
-        args.folds = 1
+        args.folds = 0
 
     if args.seed is None:
         args.seed = 0
 
+    np.random.seed(args.seed)
     if isinstance(args.week, list):
         if len(args.week)==1:
             args.week = args.week[0]
