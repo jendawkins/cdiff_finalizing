@@ -647,22 +647,22 @@ def leave_one_out_cv(data, labels, folds = None, ddtype = 'week_one'):
     return ix_all
 
 
-def leave_two_out_combos(data, labels, num_folds=50):
-    if isinstance(labels[0], str):
-        cl = np.where(labels == 'Non-recurrer')[0]
-        re = np.where(labels == 'Recurrer')[0]
-    else:
-        cl = np.where(labels == 0)[0]
-        re = np.where(labels == 1)[0]
-    ixs = np.arange(len(labels))
-    left_out = [list(x) for x in list(itertools.product(cl, re))]
-    ix_keep = [list(set(ixs)-set(l)) for l in left_out]
-    if num_folds is None:
-        ix_all = zip(np.array(ix_keep), np.array(left_out))
-    else:
-        ix_sampled = np.random.choice(np.arange(num_folds), num_folds)
-        ix_all = zip(np.array(ix_keep)[ix_sampled], np.array(left_out)[ix_sampled])
-    return ix_all
+# def leave_two_out_combos(data, labels, num_folds=50):
+#     if isinstance(labels[0], str):
+#         cl = np.where(labels == 'Non-recurrer')[0]
+#         re = np.where(labels == 'Recurrer')[0]
+#     else:
+#         cl = np.where(labels == 0)[0]
+#         re = np.where(labels == 1)[0]
+#     ixs = np.arange(len(labels))
+#     left_out = [list(x) for x in list(itertools.product(cl, re))]
+#     ix_keep = [list(set(ixs)-set(l)) for l in left_out]
+#     if num_folds is None:
+#         ix_all = zip(np.array(ix_keep), np.array(left_out))
+#     else:
+#         ix_sampled = np.random.choice(np.arange(num_folds), num_folds)
+#         ix_all = zip(np.array(ix_keep)[ix_sampled], np.array(left_out)[ix_sampled])
+#     return ix_all
 
 def leave_two_out(data, labels, num_folds=50):
     if isinstance(labels[0], str):
@@ -673,6 +673,7 @@ def leave_two_out(data, labels, num_folds=50):
         re = np.where(labels == 1)[0]
     ixs = np.arange(len(labels))
     left_out = [list(x) for x in list(itertools.product(cl, re))]
+    left_out.extend(list(itertools.combinations(cl, 2)))
     ix_keep = [list(set(ixs)-set(l)) for l in left_out]
     if num_folds is None:
         ix_all = zip(np.array(ix_keep), np.array(left_out))
