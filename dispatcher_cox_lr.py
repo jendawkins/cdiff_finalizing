@@ -80,8 +80,13 @@ if args.model == 'cox':
 elif args.model == 'LR':
     my_str = my_str + my_str_lr
 
-if not os.path.isdir('FinalRuns'):
-    os.mkdir('FinalRuns')
+if args.folds==1:
+    f_folder = 'FinalFolds'
+else:
+    f_folder = 'FinalRuns'
+
+if not os.path.isdir(f_folder):
+    os.mkdir(f_folder)
 
 if len(args.week) > 1:
     args.week = '_'.join([str(w) for w in args.week])
@@ -90,7 +95,7 @@ else:
     args.week = args.week[0]
     wname= args.week
 
-out_path = 'FinalFolds/' + args.model + '_week' + str(wname)
+out_path = f_folder + '/' + args.model + '_week' + str(wname)
 
 if not os.path.isdir(out_path):
     os.mkdir(out_path)

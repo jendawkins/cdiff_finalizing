@@ -17,8 +17,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold, GridSearchCV
 warnings.filterwarnings("ignore")
 
-def train_with_folds(x):
-    skf = StratifiedKFold(n_splits=5)
+def train_with_folds(x, num_folds = 5):
+    num_rec = np.sum(x['outcome'])
+    if num_folds > num_rec:
+        num_folds = num_rec
+    skf = StratifiedKFold(n_splits=num_folds)
     splits = skf.split(x, x['outcome'])
 
     score_vec = []
@@ -41,7 +44,13 @@ def train_with_folds(x):
         coxnet_pipe.fit(x_train_, y_arr)
 
         estimated_alphas = coxnet_pipe.named_steps["coxnetsurvivalanalysis"].alphas_
-        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+
+        num_rec = np.sum(outcome)
+        if num_folds > num_rec:
+            nf_inner = num_rec
+        else:
+            nf_inner = num_folds
+        cv = StratifiedKFold(n_splits=nf_inner, shuffle=True, random_state=0)
         gcv = GridSearchCV(
             make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1)),
             param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in estimated_alphas]},
@@ -78,7 +87,7 @@ def train_with_folds(x):
     return final_res_dict
 
 
-def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out):
+def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_folds = 50):
     # if feature_grid is None:
     #     feature_grid = np.logspace(7, 20, 14)
     hazards = []
@@ -86,7 +95,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out):
     event_outcomes = []
     score_vec = []
     model_out_dict = {}
-    ix_inner = outer_split(x, x['outcome'], num_folds=100)
+    ix_inner = outer_split(x, x['outcome'], num_folds=num_folds)
     lambda_dict = {}
     for ic_in, ix_in in enumerate(ix_inner):
         train_index, test_index = ix_in
@@ -98,7 +107,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out):
         yy = list(zip(outcome, week))
         y_arr = np.array(yy, dtype = [('e.tdm', '?'), ('t.tdm', '<f8')])
 
-        ix_inner2 = inner_split(x_train, x_train['outcome'], num_folds = 100)
+        ix_inner2 = inner_split(x_train, x_train['outcome'], num_folds = num_folds)
         lamb_dict = {}
         lamb_dict['auc'] = {}
         lamb_dict['ci'] = {}
@@ -212,6 +221,7 @@ if __name__ == "__main__":
     parser.add_argument("-week", "--week", help="week", type=str)
     parser.add_argument("-seed", "--seed", help="seed", type=int)
     parser.add_argument("-folds", "--folds", help="use_folds", type=int)
+    parser.add_argument("-num_folds", "--num_folds", help="num_folds", type=int)
     args = parser.parse_args()
 
     if args.ix is None:
@@ -225,6 +235,10 @@ if __name__ == "__main__":
 
     if args.folds is None:
         args.folds = 0
+        args.num_folds = None
+
+    if args.num_folds == 0:
+        args.num_folds = None
 
     if args.seed is None:
         args.seed = 0
@@ -260,14 +274,14 @@ if __name__ == "__main__":
         x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
 
         if args.folds == 1:
-            final_res_dict = train_with_folds(x_train0)
+            final_res_dict = train_with_folds(x_train0, num_folds=args.num_folds)
         else:
-            final_res_dict = train_cox(x_train0)
+            final_res_dict = train_cox(x_train0, num_folds=args.num_folds)
     elif args.type == 'coef':
         if args.folds == 1:
-            final_res_dict = train_with_folds(x)
+            final_res_dict = train_with_folds(x, num_folds=args.num_folds)
         else:
-            final_res_dict = train_cox(x)
+            final_res_dict = train_cox(x, num_folds=args.num_folds)
 
     final_res_dict['data'] = x
 

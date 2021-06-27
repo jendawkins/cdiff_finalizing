@@ -6,7 +6,9 @@ class dataLoader():
     def __init__(self, path = "inputs", filename_cdiff = "CDiffMetabolomics.xlsx",
         filename_16s = 'seqtab-nochim-total.xlsx', filename_ba = 'MS FE BANEG PeakPantheR',
             filename_toxin = 'Toxin B and C. difficile Isolation Results.xlsx',
-                 filename_CSgps = '20200120_HumanCarbonSourceMap.xlsx', pt_perc = 0.25, meas_thresh = 10, var_perc = 5, pt_tmpts = 1):
+                 filename_CSgps = '20200120_HumanCarbonSourceMap.xlsx',
+                 filename_scfa = 'PrecisionSCFAResultsHumanStool.xlsx',
+                 pt_perc = 0.25, meas_thresh = 10, var_perc = 5, pt_tmpts = 1):
         
         self.path = path
         self.filename_cdiff = filename_cdiff
@@ -14,6 +16,7 @@ class dataLoader():
         self.filename_ba = filename_ba
         self.filename_toxin = filename_toxin
         self.filename_CSgps = filename_CSgps
+        self.filename_scfa = filename_scfa
 
         self.pt_perc = pt_perc
         self.meas_thresh = meas_thresh
@@ -23,7 +26,9 @@ class dataLoader():
         self.load_cdiff_data()
         self.load_ba_data()
         self.load_16s_data()
-        self.keys = {'metabs':self.cdiff_data_dict,'16s':self.data16s_dict,'bile_acids':self.ba_data}
+        self.load_SCFA_data()
+        self.keys = {'metabs':self.cdiff_data_dict,'16s':self.data16s_dict,'bile_acids':self.ba_data,
+                     'scfa': self.data_scfa_dict}
         # self.week_one = {}
         # for key, value in keys.items():
         #     temp = self.get_week_x(value['data'],value['targets_by_pt'], week = 1)
@@ -34,13 +39,29 @@ class dataLoader():
         self.week_raw = {}
         self.week_filt = {}
         for key, value in self.keys.items():
+            if isinstance(pt_perc, dict):
+                if key not in pt_perc.keys():
+                    continue
+                self.pt_perc = pt_perc[key]
+            if isinstance(var_perc, dict):
+                if key not in pt_perc.keys():
+                    continue
+                self.var_perc = var_perc[key]
+            if isinstance(pt_tmpts, dict):
+                if key not in pt_perc.keys():
+                    continue
+                self.pt_tmpts = var_perc[key]
+            if isinstance(meas_thresh, dict):
+                if key not in pt_perc.keys():
+                    continue
+                self.meas_thresh = meas_thresh[key]
             self.week[key] = {}
             self.week_raw[key] = {}
             self.week_filt[key] = {}
             value['data'] = value['data'].fillna(0)
             value['targets'] = value['targets'].replace('Recur', 'Recurrer').replace('Cleared','Non-recurrer')
             value['targets_by_pt'] = value['targets_by_pt'].replace('Recur', 'Recurrer').replace('Cleared', 'Non-recurrer')
-            value['filtered_data'] = self.filter_transform(value['data'], targets_by_pt = None, key = key)
+            value['filtered_data'] = self.filter_transform(value['data'], targets_by_pt = None, key = key, filter = filter)
             temp = self.get_week_x(value['filtered_data'], value['targets_by_pt'], week=1)
 
             self.week_one[key] = temp['x'], temp['y']
@@ -87,15 +108,6 @@ class dataLoader():
                           index = self.col_mat_mets['BIOCHEMICAL'].values).fillna(0).T
 
         self.targets_by_pt = {key.split('-')[0]:value for key, value in self.targets_dict.items() if key.split('-')[1].isnumeric()}
-
-        # # Filter by low prevelance across timepoints and class
-        # self.cdiff_data_filt1 = filter_by_pt(self.cdiff_dat, pd.Series(self.targets_by_pt), perc = 0.15, pt_thresh = 1, meas_thresh = 10)
-        # # Log transform & standardize
-        # epsilon = get_epsilon(self.cdiff_data_filt1)
-        # self.cdiff_data_log = np.log(self.cdiff_data_filt1 + epsilon)
-        # self.cdiff_data_stand = standardize(self.cdiff_data_log)
-        # # Filter by low variance
-        # self.cdiff_data_filt2 = filter_vars(self.cdiff_data_stand, perc = 5)
         self.cdiff_data_dict = {'sampleMetadata':self.col_mat_pts, 'featureMetadata':self.col_mat_mets,
                                 'data':self.cdiff_dat, 'targets':pd.Series(self.targets_dict),
                                 'targets_by_pt': pd.Series(self.targets_by_pt)}
@@ -118,22 +130,20 @@ class dataLoader():
         self.data16s_both = (self.data16s[pt_both]).T
         pts = np.unique([x.split('-')[0] for x in self.data16s_both.index.values])
         targets_by_pt = pd.Series(self.cdiff_data_dict['targets_by_pt'][pts], index = pts)
-
-        # filter by low prevelance over time and classes
-        # self.data16s_filt1 = filter_by_pt(self.data16s_both, targets_by_pt, perc = 0.15, pt_thresh = 1, meas_thresh = 10)
-        # # transform to proportions and then centered log transform
-        # self.data16s_prop = np.divide(self.data16s_filt1.T, np.sum(self.data16s_filt1, 1)).T
-        # epsilon = get_epsilon(self.data16s_prop)
-        # geom_means = np.exp(np.mean(np.log(self.data16s_filt1 + epsilon),1))
-        # temp = np.divide(self.data16s_filt1.T, geom_means).T
-        # epsilon = get_epsilon(temp)
-        # self.data16s_clr = np.log(temp + epsilon)
-        # # Filter by low variance
-        # self.data16s_filt2 = filter_vars(self.data16s_clr, perc = 5)
-
-        # taxa_dict = {taxa: asv_to_name(taxa) for taxa in self.data16s_filt2.columns.values}
         self.data16s_dict = {'data': self.data16s_both, 'targets': pd.Series(self.targets_16s),
-                             'targets_by_pt': pd.Series(self.targets_by_pt)}
+                             'targets_by_pt': pd.Series(targets_by_pt)}
+
+    def load_SCFA_data(self):
+        self.file_scfa = pd.ExcelFile(self.path + '/' + self.filename_scfa)
+        raw_scfa = self.file_scfa.parse(skip_rows = 6, header = 6, index_col = 0)
+        sf_drop = raw_scfa.drop(['Crimson ID', 'Cdiff Cx', 'Sample Wt'], axis=1)
+        sf_drop = sf_drop.fillna(0)
+        sf_drop = sf_drop.replace('not done',0).replace('no acids detected',0).astype('float')
+        targets = {key: val for key, val in self.targets_dict.items() if key in sf_drop.index.values}
+        pts = np.unique([x.split('-')[0] for x in sf_drop.index.values])
+        targets_by_pt = {key: val for key, val in self.targets_by_pt.items() if key.split('-')[0] in pts}
+        self.data_scfa_dict = {'data': sf_drop, 'targets': pd.Series(targets), 'targets_by_pt': pd.Series(targets_by_pt)}
+
 
     def load_ba_data(self):
         self.ba_data = {}
@@ -160,20 +170,15 @@ class dataLoader():
         intensity_data = self.ba_data.pop('intensityData')
         temp = pd.DataFrame(np.array(intensity_data), index =np.array(list(self.ba_data['sampleMetadata']['CLIENT SAMPLE ID'])), columns = list(self.ba_data['featureMetadata']['BIOCHEMICAL']))
         self.ba_data['data'] = temp.drop('Study Pool Sample')
-        # filt1 = filter_by_pt(self.ba_data['data_raw'], pd.Series(self.targets_by_pt_ba), perc = 0.15, pt_thresh = 1, meas_thresh = 10)
-        # # Log transform & standardize
-        # epsilon = get_epsilon(filt1)
-        # data_log = np.log(filt1 + epsilon)
-        # data_stand = standardize(data_log, override = True)
-        # Filter by low variance
-        # filt2 = filter_vars(data_stand, perc=5)
-        # self.ba_data['data'] = filt2
         self.ba_data['targets_by_pt'] = pd.Series(self.targets_by_pt_ba)
         self.ba_data['targets'] = pd.Series(self.targets_dict_ba).drop(labels = 'Study Pool Sample')
 
-    def filter_transform(self, data, targets_by_pt, key = 'metabs'):
-        filt1 = filter_by_pt(data, targets_by_pt, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
-                             meas_thresh=self.meas_thresh)
+    def filter_transform(self, data, targets_by_pt, key = 'metabs', filter = True):
+        if filter:
+            filt1 = filter_by_pt(data, targets_by_pt, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
+                                 meas_thresh=self.meas_thresh)
+        else:
+            filt1 = data
         epsilon = get_epsilon(filt1)
 
         if '16s' not in key:
@@ -186,7 +191,10 @@ class dataLoader():
             epsilon = get_epsilon(temp)
             transformed = np.log(temp + epsilon)
         stand = standardize(transformed, override=True)
-        filt2 = filter_vars(stand, perc=self.var_perc)
+        if filter:
+            filt2 = filter_vars(stand, perc=self.var_perc)
+        else:
+            filt2 = stand
         return filt2
 
 
@@ -250,4 +258,6 @@ class dataLoader():
         return {'x':data_all,'y':targets_out}
 
 if __name__ == "__main__":
-    dl = dataLoader()
+    dl = dataLoader(pt_perc={'metabs': .25, '16s': .05, 'scfa': 0},
+                    meas_thresh={'metabs': 0, '16s': 10, 'scfa': 0},
+                    var_perc={'metabs': 15, '16s': 5, 'scfa': 0})

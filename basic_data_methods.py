@@ -11,6 +11,7 @@ from seaborn import clustermap
 from scipy.cluster.hierarchy import linkage
 import random
 from random import randint
+from sklearn.manifold import MDS
 # beta_diversity = 1
 # # import skbio
 # from skbio.diversity import beta_diversity
@@ -74,7 +75,7 @@ def plot_PCA(finalDf, variance, targets, path = 'pca', target_labels=None, fig_t
         tlabs = np.unique(targets)
 
     if markers is None and len(tlabs)>1:
-        pos_markers = ['o','v','s','x','+','D','X','1','^','<','>','p','*','P','|','-']
+        pos_markers = ['o','+','v','s','x','D','X','1','^','<','>','p','*','P','|','-']
         markers = {}
         for i,t in enumerate(tlabs[1]):
             markers[t] = pos_markers[i]
@@ -88,6 +89,9 @@ def plot_PCA(finalDf, variance, targets, path = 'pca', target_labels=None, fig_t
             cv = np.expand_dims(np.array(cmap(i / len(tlabs[0]))), 0)
             colors[t] = cv
 
+    sizes = {'Recurrer':70, 'Non-recurrer':30}
+    alphas = {'Recurrer':1, 'Non-recurrer':0.65}
+
     if len(targets) == 2:
         if len(tlabs[0])==2:
             a,b = (0,1)
@@ -95,33 +99,51 @@ def plot_PCA(finalDf, variance, targets, path = 'pca', target_labels=None, fig_t
             a, b = (1,0)
 
         all_targs = np.concatenate([list(zip(tlabs[a],x)) for x in itertools.permutations(tlabs[b],len(tlabs[a]))])
-        lines_1 = {}
-        lines_2 = {}
+        lines = {}
+        lines[a] = {}
+        lines[b] = {}
         for targ in all_targs:
             indicesToKeep1 = np.where(targets[0] == targ[a])[0]
             # if targ[0] not in lines.keys():
             #     lines[targ[0]] = {}
             indicesToKeep2 = np.where(targets[1] == targ[b])[0]
             ix_combo = list(set(indicesToKeep1).intersection(indicesToKeep2))
-            if targ[a] == 'Non-recurrer':
-                if targ[b] not in lines_2.keys():
-                    line = ax.scatter(finalDf.iloc[ix_combo]['PC1'],
-                                      finalDf.iloc[ix_combo]['PC2'], c='k', s=50, marker=markers[targ[b]])
-                    lines_2[targ[b]] = line
-            line_temp = ax.scatter(finalDf.iloc[ix_combo]['PC1'],
-                       finalDf.iloc[ix_combo]['PC2'], c=colors[targ[a]], s=50, marker = markers[targ[b]])
-            if targ[b] == '0':
-                if targ[a] not in lines_1.keys():
-                    lines_1[targ[a]] = line_temp
+            # recur/cleared will always be targ[0]
+            # if recur/cleared are first, want recur/cleared to be colors
+            # otherwise, want weeks to be colors & recur/cleared to be markers
 
-        k2, v2 = lines_2.items()
-        legend1 = plt.legend(v2, ['Week ' + str(tt) for tt in k2], loc = 1)
-        k1, v1 = lines_1.items()
-        if target_labels:
-            k1 = [target_labels[k] for k in k1]
-        legend2 = plt.legend(v1, k1, loc = 2)
-        fig.add_artist(legend1)
-        fig.add_artist(legend2)
+            # if Recur/cleared is the second label OR if weeks is the second label
+            # if targ[b] in tlabs[1]:
+                # Condition met for whichever labels we want to be markers
+
+            if targ[b] not in lines[b].keys():
+                # make line for legend for MARKERS
+                line = ax.scatter(finalDf.iloc[ix_combo]['PC1'],
+                                  finalDf.iloc[ix_combo]['PC2'], facecolors='none', c='k', s=30,
+                                  marker=markers[targ[b]],
+                                  alpha=alphas[targ[0]])
+                lines[b][targ[b]] = line
+            # if targ[a] in tlabs[0]:
+            if targ[a] not in lines[a].keys():
+                line = ax.scatter(finalDf.iloc[ix_combo]['PC1'],
+                                  finalDf.iloc[ix_combo]['PC2'], c=colors[targ[a]], s=30,
+                                  marker=list(markers.values())[1],
+                                  alpha=alphas[targ[0]])
+                lines[a][targ[a]] = line
+            line_temp = ax.scatter(finalDf.iloc[ix_combo]['PC1'],
+                                   finalDf.iloc[ix_combo]['PC2'], c=colors[targ[a]], s=sizes[targ[0]],
+                                   marker=markers[targ[b]],
+                                   alpha=alphas[targ[0]])
+
+        k2, v2 = list(lines[a].keys()), list(lines[a].values())
+        if target_labels[b]:
+            k2 = [target_labels[b][k] for k in k2]
+        legend1 = ax.legend(v2, ['Week ' + str(tt) for tt in k2], loc = 1)
+        k1, v1 = list(lines[b].keys()), list(lines[b].values())
+        if target_labels[a]:
+            k1 = [target_labels[a][k] for k in k1]
+        legend2 = ax.legend(v1, k1, loc = 2)
+        ax.add_artist(legend1)
     else:
         for target, color in zip(tlabs, colors):
             indicesToKeep = np.array(targets == target)
@@ -136,7 +158,7 @@ def plot_PCA(finalDf, variance, targets, path = 'pca', target_labels=None, fig_t
     else:
         return fig, ax
 
-def pcoa_custom(x, metric = 'braycurtis'):
+def pcoa_custom(x, metric = 'braycurtis', metric_mds = True):
     if metric == 'euclidean':
         dist_mat = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(x, metric = 'euclidean'))
         pca = PCA(n_components=2)
@@ -155,6 +177,9 @@ def pcoa_custom(x, metric = 'braycurtis'):
             dist_mat = scipy.spatial.distance.squareform(dist_mat)
 
         print(dist_mat.shape)
+        mds = MDS(n_components = 2, dissimilarity = 'precomputed', metric = metric_mds)
+        Y = mds.fit_transform(dist_mat)
+
         C = np.eye(dist_mat.shape[0]) - (1/dist_mat.shape[0])*np.ones(dist_mat.shape)
         D = dist_mat**2
         B = -0.5*(C@D@C)
@@ -163,7 +188,7 @@ def pcoa_custom(x, metric = 'braycurtis'):
         sorted_eig = eigen_values[sorted_ixs]
         E = eigen_vectors[:,sorted_ixs]
 
-        Y = (E@x)
+        # Y = (E@x)
 
         variance = [(se/np.sum(abs(sorted_eig))) for se in sorted_eig]
         # variance_tot = np.var(Y,0)
@@ -216,35 +241,37 @@ def plot_heatmap(data, name = ''):
     plt.savefig(name + '.pdf')
 
 if __name__ == "__main__":
-    dl = dataLoader(pt_perc=.15, meas_thresh=10, var_perc=5, pt_tmpts=1)
-
-    pca_dF, variances, d1 = pcoa_custom(dl.week['metabs'][1]['x'], metric='spearman')
-    plot_PCA(pca_dF, variances, dl.week['metabs'][1]['y_eventually'], path='paper_figs/pca/metabs_sp_w1',
-             target_labels=None, fig_title='Metabolites, Spearman PCoA', colors={
-            'Non-recurrer': 'g', 'Recurrer': 'r'}, markers=None)
-
-    metabs = pd.DataFrame(np.vstack([dl.week['metabs'][i]['x'] for i in [0,1,2,3,4]]), index = \
-        np.concatenate([dl.week['metabs'][i]['x'].index.values for i in [0,1,2,3,4]]), \
-                          columns = dl.week['metabs'][0]['x'].columns.values)
-    met_y = np.concatenate([dl.week['metabs'][i]['y_eventually'] for i in [0,1,2,3,4]])
+    dl_1 = dataLoader(pt_perc=.25, meas_thresh=0, var_perc=15, pt_tmpts=1)
+    dl_2 = dataLoader(pt_perc=.05, meas_thresh=10, var_perc=5, pt_tmpts=1)
+    metabs = pd.DataFrame(np.vstack([dl_1.week['metabs'][i]['x'] for i in [0, 1, 2, 3, 4]]), index= \
+        np.concatenate([dl_1.week['metabs'][i]['x'].index.values for i in [0, 1, 2, 3, 4]]), \
+                          columns=dl_1.week['metabs'][0]['x'].columns.values)
+    met_y = np.concatenate([dl_1.week['metabs'][i]['y'] for i in [0, 1, 2, 3, 4]])
     met_y_tmpts = np.array([x.split('-')[1] for x in metabs.index.values])
 
-    bile_acids = pd.DataFrame(np.vstack([dl.week['bile_acids'][i]['x'] for i in [0,1,2,3,4]]), index = \
-        np.concatenate([dl.week['bile_acids'][i]['x'].index.values for i in [0,1,2,3,4]]), \
-                              columns = dl.week['bile_acids'][0]['x'].columns.values)
-    ba_y = np.concatenate([dl.week['bile_acids'][i]['y_eventually'] for i in [0,1,2,3,4]])
+    bile_acids = pd.DataFrame(np.vstack([dl_1.week['bile_acids'][i]['x'] for i in [0, 1, 2, 3, 4]]), index= \
+        np.concatenate([dl_1.week['bile_acids'][i]['x'].index.values for i in [0, 1, 2, 3, 4]]), \
+                              columns=dl_1.week['bile_acids'][0]['x'].columns.values)
+    ba_y = np.concatenate([dl_1.week['bile_acids'][i]['y'] for i in [0, 1, 2, 3, 4]])
     ba_y_tmpts = np.array([x.split('-')[1] for x in bile_acids.index.values])
 
-    counts = np.vstack([dl.week_raw['16s'][i]['x'] for i in [0,1,2,3,4]])
-    proportions = pd.DataFrame(np.divide(counts.T, np.sum(counts, 1)).T, index = \
-        np.concatenate([dl.week_raw['16s'][i]['x'].index.values for i in [0,1,2,3,4]]), \
-                              columns = dl.week_raw['16s'][0]['x'].columns.values)
-    prop_y = np.concatenate([dl.week_raw['16s'][i]['y_eventually'] for i in [0,1,2,3,4]])
+    counts = pd.DataFrame(np.vstack([dl_2.week_raw['16s'][i]['x'] for i in [0, 1, 2, 3, 4]]), index= \
+        np.concatenate([dl_2.week_raw['16s'][i]['x'].index.values for i in [0, 1, 2, 3, 4]]), \
+                          columns=dl_2.week_raw['16s'][0]['x'].columns.values)
+    proportions = pd.DataFrame(np.divide(counts.T, np.sum(counts, 1)).T, index= \
+        np.concatenate([dl_2.week_raw['16s'][i]['x'].index.values for i in [0, 1, 2, 3, 4]]), \
+                               columns=dl_2.week_raw['16s'][0]['x'].columns.values)
+    prop_y = np.concatenate([dl_2.week_raw['16s'][i]['y'] for i in [0, 1, 2, 3, 4]])
     prop_y_tmpts = np.array([x.split('-')[1] for x in proportions.index.values])
 
+    fig = plt.figure(figsize=(20, 15))
+    ax_otus = plt.subplot2grid((2, 2), (1, 0), colspan=1)
+    ax_metabs = plt.subplot2grid((2, 2), (1, 1), colspan=1)
     pca_dF, variances, d1 = pcoa_custom(metabs, metric='spearman')
-    plot_PCA(pca_dF, variances, [met_y_tmpts, met_y], path='paper_figs/pca/metabs_sp_test', target_labels=None,
-             fig_title='Metabolites, Spearman PCoA', colors=None, markers=None)
+    fig, ax_metabs = plot_PCA(pca_dF, variances, [met_y_tmpts, met_y], path='paper_figs/pca/metabs_sp',
+                              fig_title='Metabolic Levels, PCoA', target_labels=
+                              [{}, {'Non-recurrer': 'Will Recur (R)', 'Recurrer': 'Will not recur (NR)'}],
+                              markers=None, fig=fig, ax=ax_metabs)
 
     # Univariate analysis
     for key in dl.week.keys():
