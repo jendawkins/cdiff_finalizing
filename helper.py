@@ -673,7 +673,7 @@ def leave_two_out(data, labels, num_folds=50):
         re = np.where(labels == 1)[0]
     ixs = np.arange(len(labels))
     left_out = [list(x) for x in list(itertools.product(cl, re))]
-    left_out.extend(list(itertools.combinations(cl, 2)))
+    left_out.extend(list(itertools.combinations(re, 2)))
     ix_keep = [list(set(ixs)-set(l)) for l in left_out]
     if num_folds is None:
         ix_all = zip(np.array(ix_keep), np.array(left_out))
