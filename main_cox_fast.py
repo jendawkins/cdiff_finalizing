@@ -17,6 +17,68 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold, GridSearchCV
 warnings.filterwarnings("ignore")
 
+def train_with_inner_folds(x, num_folds = 5):
+    final_res_dict = {}
+    scores = []
+
+    scores = []
+    score_d = []
+    ix_inner = leave_two_out(x, x['outcome'], num_folds=num_folds)
+    final_res_dict['grid_search_model'] = []
+    final_res_dict['best_model'] = []
+    final_res_dict['best_alpha'] = []
+    final_res_dict['alphas'] = []
+    for ic_in, ix_in in enumerate(ix_inner):
+        train_index, test_index = ix_in
+        x_train, x_test = x_train0.iloc[train_index, :], x_train0.iloc[test_index, :]
+        y_test = list(zip(x_test['outcome'], x_test['week']))
+        y_test_arr = np.array(y_test, dtype=[('e.tdm', '?'), ('t.tdm', '<f8')])
+        if len(np.unique(y_test_arr)) == 1:
+            continue
+
+        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=100, alpha_min_ratio=0.001)
+
+        week = x_train['week']
+        outcome = x_train['outcome']
+        x_train_ = x_train.drop(['week', 'outcome'], axis=1)
+        yy = list(zip(outcome, week))
+        y_arr = np.array(yy, dtype=[('e.tdm', '?'), ('t.tdm', '<f8')])
+        model2.fit(x_train_, y_arr)
+        num_rec = np.sum(outcome)
+        if num_folds > num_rec:
+            nf_inner = num_rec
+        else:
+            nf_inner = num_folds
+        cv = StratifiedKFold(n_splits=nf_inner, shuffle=True, random_state=0)
+        gcv = GridSearchCV(
+            make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=100,
+                                                                   alpha_min_ratio=0.001)),
+            param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in model2.alphas_]},
+            cv=cv,
+            error_score=0.5,
+            n_jobs=4).fit(x_train_, y_arr)
+
+        best_model = gcv.best_estimator_.named_steps["coxnetsurvivalanalysis"]
+        best_alpha = best_model.alphas
+
+        pred = model2.predict(x_test.drop(['week', 'outcome'], axis=1), alpha=best_alpha)
+        score_default = model2.score(x_test.drop(['week', 'outcome'], axis=1), y_test_arr)
+        score = concordance_index_censored(x_test['outcome'].astype(bool), x_test['week'], pred)[0]
+        if not np.isnan(score):
+            scores.append(score)
+        if not np.isnan(score_default):
+            score_d.append(score_default)
+        final_res_dict['grid_search_model'].append(gcv)
+        final_res_dict['best_model'].append(best_model)
+        final_res_dict['best_alpha'].append(best_alpha)
+        final_res_dict['alphas'].append(model2.alphas_)
+
+    conc_ix = np.mean(scores)
+    conc_ix_d = np.mean(score_d)
+    final_res_dict['score'] = conc_ix
+    final_res_dict['score_default'] = conc_ix_d
+    return final_res_dict
+
 def train_with_folds(x, num_folds = 5):
     num_rec = np.sum(x['outcome'])
     if num_folds > num_rec:
@@ -45,18 +107,47 @@ def train_with_folds(x, num_folds = 5):
 
         estimated_alphas = coxnet_pipe.named_steps["coxnetsurvivalanalysis"].alphas_
 
+
         num_rec = np.sum(outcome)
         if num_folds > num_rec:
             nf_inner = num_rec
         else:
             nf_inner = num_folds
         cv = StratifiedKFold(n_splits=nf_inner, shuffle=True, random_state=0)
-        gcv = GridSearchCV(
-            make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1)),
-            param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in estimated_alphas]},
-            cv=cv,
-            error_score=0.5,
-            n_jobs=4).fit(x_train_, y_arr)
+        try:
+            gcv = GridSearchCV(
+                make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1)),
+                param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in estimated_alphas]},
+                cv=cv,
+                error_score=0.5,
+                n_jobs=4).fit(x_train_, y_arr)
+        except:
+            print('removed alpha ' + str(estimated_alphas[0]))
+            alphas_n = np.delete(estimated_alphas, 0)
+            gcv = GridSearchCV(
+                make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1)),
+                param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in alphas_n]},
+                cv=cv,
+                error_score=0.5,
+                n_jobs=4)
+            while(1):
+                try:
+                    gcv.fit(x_train_, y_arr)
+                    estimated_alphas = alphas_n
+                    break
+                except:
+                    print('removed alpha ' + str(alphas_n[0]))
+                    alphas_n = np.delete(alphas, 0)
+                    gcv = GridSearchCV(
+                        make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1)),
+                        param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in alphas_n]},
+                        cv=cv,
+                        error_score=0.5,
+                        n_jobs=4)
+                if len(alphas_n)<=2:
+                    break
+            if len(alphas_n)<=2:
+                continue
 
         cv_results = pd.DataFrame(gcv.cv_results_)
         alphas = cv_results.param_coxnetsurvivalanalysis__alphas.map(lambda x: x[0])
@@ -265,6 +356,8 @@ if __name__ == "__main__":
 
     if args.num_folds == 0:
         args.num_folds = None
+    if args.num_folds is None and args.folds == 1:
+        args.num_folds = 5
 
     if args.seed is None:
         args.seed = 0
@@ -302,12 +395,14 @@ if __name__ == "__main__":
         if args.folds == 1:
             final_res_dict = train_with_folds(x_train0, num_folds=args.num_folds)
         else:
-            final_res_dict = train_cox(x_train0, num_folds=args.num_folds)
+            final_res_dict = train_with_inner_folds(x_train0, num_folds=args.num_folds)
+            # final_res_dict = train_cox(x_train0, num_folds=args.num_folds)
     elif args.type == 'coef':
         if args.folds == 1:
             final_res_dict = train_with_folds(x, num_folds=args.num_folds)
         else:
-            final_res_dict = train_cox(x, num_folds=args.num_folds)
+            final_res_dict = train_with_inner_folds(x, num_folds=args.num_folds)
+            # final_res_dict = train_cox(x, num_folds=args.num_folds)
 
     final_res_dict['data'] = x
 
