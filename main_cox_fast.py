@@ -149,8 +149,8 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
                 model2.fit(x_tr2_, y_arr2)
             except:
                 score_dict[i][ic_in2] = 0
-                rm = alphas.pop(0)
-                print('removed alpha ' + str(rm))
+                print('removed alpha ' + str(alphas[0]))
+                alphas = np.delete(alphas, 0)
             # alphas_new = model2.alphas_
             # if ic_in2 == 0:
             #     alphas = alphas_new
