@@ -134,6 +134,12 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
 
             train_ix, test_ix = ix_in2
             x_tr2, x_ts2 = x_train.iloc[train_ix, :], x_train.iloc[test_ix, :]
+
+            y_test = list(zip(x_ts2['outcome'], x_ts2['week']))
+            y_test_arr = np.array(y_test, dtype=[('e.tdm', '?'), ('t.tdm', '<f8')])
+            if len(np.unique(y_test_arr)) < len(test_ix):
+                continue
+
             week = x_tr2['week']
             outcome = x_tr2['outcome']
             if (outcome == 0).all():
