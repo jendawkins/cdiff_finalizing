@@ -73,6 +73,7 @@ parser.add_argument("-o","--o",help = 'out file', type = str)
 parser.add_argument("-model","--model",help = 'model', type = str)
 parser.add_argument("-folds","--folds",help = 'use_folds', type = str)
 parser.add_argument("-week","--week",help = 'week', type = float, nargs='+')
+parser.add_argument("-i","--i",help = 'input data', type = str)
 args = parser.parse_args()
 
 if args.model == 'cox':
@@ -103,12 +104,13 @@ if not os.path.isdir(out_path):
 if not args.o:
     args.o = out_path
 
-dattype = 'metabs'
-path_out = args.o + '/' + dattype + '/'
+if args.i is None:
+    args.i = 'metabs'
+path_out = args.o + '/' + args.i + '/'
 fname = 'cdiff_lr.lsf'
 if not os.path.exists(path_out + 'coef' + "_" + str(0) + '.pkl'):
     f = open(fname, 'w')
-    f.write(my_str.format(0, dattype, args.o, 'coef', args.week, args.folds))
+    f.write(my_str.format(0, args.i, args.o, 'coef', args.week, args.folds))
     f.close()
     os.system('bsub < {}'.format(fname))
 
@@ -118,7 +120,7 @@ for ix in range(49):
     else:
         fname = 'cdiff_lr.lsf'
         f = open(fname, 'w')
-        f.write(my_str.format(ix, dattype, args.o, 'auc', args.week, args.folds))
+        f.write(my_str.format(ix, args.i, args.o, 'auc', args.week, args.folds))
         f.close()
         os.system('bsub < {}'.format(fname))
 
