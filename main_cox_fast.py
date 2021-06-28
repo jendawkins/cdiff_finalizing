@@ -23,7 +23,7 @@ def train_with_inner_folds(x, num_folds = 5):
 
     scores = []
     score_d = []
-    ix_inner = leave_two_out(x, x['outcome'], num_folds=num_folds)
+    ix_inner = leave_two_out(x, x['outcome'], num_folds=None)
     final_res_dict['grid_search_model'] = []
     final_res_dict['best_model'] = []
     final_res_dict['best_alpha'] = []
@@ -178,7 +178,7 @@ def train_with_folds(x, num_folds = 5):
     return final_res_dict
 
 
-def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_folds = 50):
+def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_folds = None):
     if num_folds is None:
         print('none')
     else:
@@ -352,11 +352,8 @@ if __name__ == "__main__":
 
     if args.folds is None:
         args.folds = 0
-        args.num_folds = None
 
-    if args.num_folds == 0:
-        args.num_folds = None
-    if args.num_folds is None and args.folds == 1:
+    if args.num_folds is None:
         args.num_folds = 5
 
     if args.seed is None:
@@ -396,13 +393,13 @@ if __name__ == "__main__":
             final_res_dict = train_with_folds(x_train0, num_folds=args.num_folds)
         else:
             final_res_dict = train_with_inner_folds(x_train0, num_folds=args.num_folds)
-            # final_res_dict = train_cox(x_train0, num_folds=args.num_folds)
+            # final_res_dict = train_cox(x_train0)
     elif args.type == 'coef':
         if args.folds == 1:
             final_res_dict = train_with_folds(x, num_folds=args.num_folds)
         else:
             final_res_dict = train_with_inner_folds(x, num_folds=args.num_folds)
-            # final_res_dict = train_cox(x, num_folds=args.num_folds)
+            # final_res_dict = train_cox(x)
 
     final_res_dict['data'] = x
 
