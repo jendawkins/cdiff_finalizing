@@ -115,7 +115,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
         lamb_dict = {}
         lamb_dict['auc'] = {}
         lamb_dict['ci'] = {}
-        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=.001, n_alphas=100)
+        model2 = CoxnetSurvivalAnalysis(l1_ratio=1)
 
         model_dict = {}
         alphas = None
@@ -124,13 +124,10 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
         e_outcomes_dict = {}
         score_dict = {}
 
-        coxnet_pipe = make_pipeline(
-            StandardScaler(),
-            CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=0.001)
-        )
-        warnings.simplefilter("ignore", ConvergenceWarning)
+        coxnet_pipe = CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=0.001,n_alphas=200)
+
         coxnet_pipe.fit(x_train_, y_arr)
-        alphas = coxnet_pipe.named_steps["coxnetsurvivalanalysis"].alphas_
+        alphas = coxnet_pipe.alphas_
 
         for ic_in2, ix_in2 in enumerate(ix_inner2):
             start_inner = time.time()
@@ -148,9 +145,22 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
             try:
                 model2.fit(x_tr2_, y_arr2)
             except:
-                score_dict[i][ic_in2] = 0
                 print('removed alpha ' + str(alphas[0]))
-                alphas = np.delete(alphas, 0)
+                alphas_n = np.delete(alphas, 0)
+                model2.set_params(alphas=alphas_n)
+                while(1):
+                    try:
+                        model2.fit(x_tr2_, y_arr2)
+                        alphas = alphas_n
+                        break
+                    except:
+                        print('removed alpha ' + str(alphas_n[0]))
+                        alphas_n = np.delete(alphas, 0)
+                        model2.set_params(alphas=alphas_n)
+                    if len(alphas_n)<=2:
+                        break
+                if len(alphas_n)<=2:
+                    continue
             # alphas_new = model2.alphas_
             # if ic_in2 == 0:
             #     alphas = alphas_new
