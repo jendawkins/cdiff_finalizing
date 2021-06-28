@@ -88,6 +88,10 @@ def train_with_folds(x, num_folds = 5):
 
 
 def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_folds = 50):
+    if num_folds is None:
+        print('none')
+    else:
+        print(num_folds)
     # if feature_grid is None:
     #     feature_grid = np.logspace(7, 20, 14)
     hazards = []
@@ -122,7 +126,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
 
         coxnet_pipe = make_pipeline(
             StandardScaler(),
-            CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=0.001, max_iter=100)
+            CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=0.001)
         )
         warnings.simplefilter("ignore", ConvergenceWarning)
         coxnet_pipe.fit(x_train_, y_arr)
@@ -141,7 +145,12 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
             yy2 = list(zip(outcome, week))
             y_arr2 = np.array(yy2, dtype=[('e.tdm', '?'), ('t.tdm', '<f8')])
             model2.set_params(alphas=alphas)
-            model2.fit(x_tr2_, y_arr2)
+            try:
+                model2.fit(x_tr2_, y_arr2)
+            except:
+                score_dict[i][ic_in2] = 0
+                rm = alphas.pop(0)
+                print('removed alpha ' + str(rm))
             # alphas_new = model2.alphas_
             # if ic_in2 == 0:
             #     alphas = alphas_new
@@ -160,7 +169,8 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
 
                 if len(test_ix)>=2:
                     score_dict[i][ic_in2], _, _,_,_ = concordance_index_censored(e_outcomes_dict[i][ic_in2].astype(bool), e_times_dict[i][ic_in2],
-                                                                   hazards_dict[i][ic_in2])
+                                                                       hazards_dict[i][ic_in2])
+
 
         if len(score_dict[i]) > 0:
             scores = {i: sum(score_dict[i].values())/len(score_dict[i].values()) for i in score_dict.keys()}
