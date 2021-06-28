@@ -30,7 +30,8 @@ def train_with_inner_folds(x, num_folds = 5):
     final_res_dict['alphas'] = []
     for ic_in, ix_in in enumerate(ix_inner):
         train_index, test_index = ix_in
-        x_train, x_test = x_train0.iloc[train_index, :], x_train0.iloc[test_index, :]
+        x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
+
         y_test = list(zip(x_test['outcome'], x_test['week']))
         y_test_arr = np.array(y_test, dtype=[('e.tdm', '?'), ('t.tdm', '<f8')])
         if len(np.unique(y_test_arr)) == 1:
@@ -49,7 +50,7 @@ def train_with_inner_folds(x, num_folds = 5):
             nf_inner = num_rec
         else:
             nf_inner = num_folds
-        cv = StratifiedKFold(n_splits=nf_inner, shuffle=True, random_state=0)
+        cv = StratifiedKFold(n_splits=int(nf_inner), shuffle=True, random_state=0)
         gcv = GridSearchCV(
             make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=100,
                                                                    alpha_min_ratio=0.001)),
