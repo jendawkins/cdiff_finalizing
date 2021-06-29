@@ -51,13 +51,23 @@ def train_with_inner_folds(x, num_folds = 5):
         else:
             nf_inner = num_folds
         cv = StratifiedKFold(n_splits=int(nf_inner), shuffle=True, random_state=0)
-        gcv = GridSearchCV(
-            make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=100,
-                                                                   alpha_min_ratio=0.001)),
-            param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in model2.alphas_]},
-            cv=cv,
-            error_score=0.5,
-            n_jobs=4).fit(x_train_, y_arr)
+        alphas = model2.alphas_
+        while (1):
+            try:
+                gcv = GridSearchCV(
+                    make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=100,
+                                                                           alpha_min_ratio=0.001)),
+                    param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in alphas]},
+                    cv=cv,
+                    error_score=0.5,
+                    n_jobs=4).fit(x_train_, y_arr)
+            except:
+                alphas = np.delete(alphas, 0)
+                continue
+            if len(alphas)<=2:
+                break
+        if len(alphas)<=2:
+            continue
 
         best_model = gcv.best_estimator_.named_steps["coxnetsurvivalanalysis"]
         best_alpha = best_model.alphas
@@ -72,7 +82,7 @@ def train_with_inner_folds(x, num_folds = 5):
         final_res_dict['grid_search_model'].append(gcv)
         final_res_dict['best_model'].append(best_model)
         final_res_dict['best_alpha'].append(best_alpha)
-        final_res_dict['alphas'].append(model2.alphas_)
+        final_res_dict['alphas'].append(alphas)
 
     conc_ix = np.mean(scores)
     conc_ix_d = np.mean(score_d)
