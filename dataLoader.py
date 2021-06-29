@@ -29,6 +29,8 @@ class dataLoader():
         self.load_SCFA_data()
         self.keys = {'metabs':self.cdiff_data_dict,'16s':self.data16s_dict,'bile_acids':self.ba_data,
                      'scfa': self.data_scfa_dict}
+
+        self.combos = ['metabs_16s','metabs_scfa']
         # self.week_one = {}
         # for key, value in keys.items():
         #     temp = self.get_week_x(value['data'],value['targets_by_pt'], week = 1)
@@ -62,9 +64,9 @@ class dataLoader():
             value['targets'] = value['targets'].replace('Recur', 'Recurrer').replace('Cleared','Non-recurrer')
             value['targets_by_pt'] = value['targets_by_pt'].replace('Recur', 'Recurrer').replace('Cleared', 'Non-recurrer')
             value['filtered_data'] = self.filter_transform(value['data'], targets_by_pt = None, key = key, filter = filter)
-            temp = self.get_week_x(value['filtered_data'], value['targets_by_pt'], week=1)
-
-            self.week_one[key] = temp['x'], temp['y']
+            # temp = self.get_week_x(value['filtered_data'], value['targets_by_pt'], week=1)
+            #
+            # self.week_one[key] = temp['x'], temp['y']
             temp_filt = filter_by_pt(value['data'], targets=None, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
                                      meas_thresh=self.meas_thresh)
             for week in [0,1,1.5,2,2.5,3,3.5,4]:
@@ -74,13 +76,21 @@ class dataLoader():
                 self.week_raw[key][week] = self.get_week_x_step_ahead(value['data'], value['targets_by_pt'],
                                                                       week=week)
 
-        ix_both = list(set(self.week_one['metabs'][0].index.values).intersection(set(self.week_one['16s'][0].index.values)))
-        ix_pt = [ix.split('-')[0] for ix in ix_both]
-        joint = np.hstack((self.week_one['metabs'][0].loc[ix_both,:],
-                                            self.week_one['16s'][0].loc[ix_both,:]))
-        cols = list(self.week_one['metabs'][0].columns.values)
-        cols.extend(self.week_one['16s'][0].columns.values)
-        self.week_one['joint'] = pd.DataFrame(joint, index = ix_both, columns = cols), self.cdiff_data_dict['targets_by_pt'][ix_pt]
+        for ck in self.combos:
+            self.week[ck] = {}
+            for week in [0,1,1.5,2,2.5,3,3.5,4]:
+                self.week[ck][week] = {}
+                ix_both = list(set(self.week[ck.split('_')[0]][week]['x'].index.values).intersection(
+                    set(self.week[ck.split('_')[1]][week]['x'].index.values)))
+                ix_pt = [ix.split('-')[0] for ix in ix_both]
+                joint = np.hstack((self.week[ck.split('_')[0]][week]['x'].loc[ix_both,:],
+                                   self.week[ck.split('_')[1]][week]['x'].loc[ix_both,:]))
+                joint = standardize(joint, override = True)
+                cols = list(self.week[ck.split('_')[0]][week]['x'].columns.values)
+                cols.extend(self.week[ck.split('_')[1]][week]['x'].columns.values)
+                self.week[ck][week]['x'] = pd.DataFrame(joint, index = ix_both, columns = cols)
+                self.week[ck][week]['y'] = self.week[ck.split('_')[0]][week]['y'][ix_pt]
+                self.week[ck][week]['event_times'] = self.week[ck.split('_')[0]][week]['event_times'][ix_pt]
 
 
     def load_cdiff_data(self):

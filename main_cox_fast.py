@@ -37,7 +37,7 @@ def train_with_inner_folds(x, num_folds = 5):
         if len(np.unique(y_test_arr)) == 1:
             continue
 
-        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=100, alpha_min_ratio=0.001)
+        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=200, alpha_min_ratio=0.001)
 
         week = x_train['week']
         outcome = x_train['outcome']
@@ -47,34 +47,31 @@ def train_with_inner_folds(x, num_folds = 5):
         model2.fit(x_train_, y_arr)
         num_rec = np.sum(outcome)
         if num_folds > num_rec:
-            nf_inner = num_rec
+            nf_inner = int(num_rec)
         else:
-            nf_inner = num_folds
+            nf_inner = int(num_folds)
         cv = StratifiedKFold(n_splits=int(nf_inner), shuffle=True, random_state=0)
         alphas = model2.alphas_
-        while (1):
-            try:
-                gcv = GridSearchCV(
-                    make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=100,
-                                                                           alpha_min_ratio=0.001)),
-                    param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in alphas]},
-                    cv=cv,
-                    error_score=0.5,
-                    n_jobs=4).fit(x_train_, y_arr)
-            except:
-                alphas = np.delete(alphas, 0)
-                continue
-            if len(alphas)<=2:
-                break
-        if len(alphas)<=2:
-            continue
+        try:
+            gcv = GridSearchCV(
+                make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=200,
+                                                                       alpha_min_ratio=0.001)),
+                param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in alphas]},
+                cv=cv,
+                error_score=0.5,
+                n_jobs=4).fit(x_train_, y_arr)
+            best_model = gcv.best_estimator_.named_steps["coxnetsurvivalanalysis"]
+            best_alpha = best_model.alphas
 
-        best_model = gcv.best_estimator_.named_steps["coxnetsurvivalanalysis"]
-        best_alpha = best_model.alphas
+            pred = model2.predict(x_test.drop(['week', 'outcome'], axis=1), alpha=best_alpha)
+            score_default = model2.score(x_test.drop(['week', 'outcome'], axis=1), y_test_arr)
+            score = concordance_index_censored(x_test['outcome'].astype(bool), x_test['week'], pred)[0]
+        except:
+            score_default = model2.score(x_test.drop(['week', 'outcome'], axis=1), y_test_arr)
+            score = score_default.copy()
+            best_model = model2
+            best_alpha = alphas[-1]
 
-        pred = model2.predict(x_test.drop(['week', 'outcome'], axis=1), alpha=best_alpha)
-        score_default = model2.score(x_test.drop(['week', 'outcome'], axis=1), y_test_arr)
-        score = concordance_index_censored(x_test['outcome'].astype(bool), x_test['week'], pred)[0]
         if not np.isnan(score):
             scores.append(score)
         if not np.isnan(score_default):
@@ -92,6 +89,7 @@ def train_with_inner_folds(x, num_folds = 5):
 
 def train_with_folds(x, num_folds = 5):
     num_rec = np.sum(x['outcome'])
+
     if num_folds > num_rec:
         num_folds = num_rec
     skf = StratifiedKFold(n_splits=num_folds)
@@ -109,21 +107,24 @@ def train_with_folds(x, num_folds = 5):
         x_train_ = x_train.drop(['week', 'outcome'], axis=1)
         yy = list(zip(outcome, week))
         y_arr = np.array(yy, dtype=[('e.tdm', '?'), ('t.tdm', '<f8')])
-        coxnet_pipe = make_pipeline(
-            StandardScaler(),
-            CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=0.001)
-        )
-        warnings.simplefilter("ignore")
-        coxnet_pipe.fit(x_train_, y_arr)
 
-        estimated_alphas = coxnet_pipe.named_steps["coxnetsurvivalanalysis"].alphas_
+        y_test = list(zip(x_test['outcome'], x_test['week']))
+        y_test_arr = np.array(y_test, dtype=[('e.tdm', '?'), ('t.tdm', '<f8')])
+        if len(np.unique(y_test_arr))==1:
+            continue
+
+        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=0.001, n_alphas = 200)
+        warnings.simplefilter("ignore")
+        model2.fit(x_train_, y_arr)
+
+        estimated_alphas = model2.alphas_
 
 
         num_rec = np.sum(outcome)
         if num_folds > num_rec:
-            nf_inner = num_rec
+            nf_inner = int(num_rec)
         else:
-            nf_inner = num_folds
+            nf_inner = int(num_folds)
         cv = StratifiedKFold(n_splits=nf_inner, shuffle=True, random_state=0)
         try:
             gcv = GridSearchCV(
@@ -132,43 +133,26 @@ def train_with_folds(x, num_folds = 5):
                 cv=cv,
                 error_score=0.5,
                 n_jobs=4).fit(x_train_, y_arr)
+            cv_results = pd.DataFrame(gcv.cv_results_)
+            alphas = cv_results.param_coxnetsurvivalanalysis__alphas.map(lambda x: x[0])
+            best_model = gcv.best_estimator_.named_steps["coxnetsurvivalanalysis"]
+            best_alpha = best_model.alphas
+            best_coefs = pd.DataFrame(
+                best_model.coef_,
+                index=x_train_.columns,
+                columns=["coefficient"]
+            )
         except:
-            print('removed alpha ' + str(estimated_alphas[0]))
-            alphas_n = np.delete(estimated_alphas, 0)
-            gcv = GridSearchCV(
-                make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1)),
-                param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in alphas_n]},
-                cv=cv,
-                error_score=0.5,
-                n_jobs=4)
-            while(1):
-                try:
-                    gcv.fit(x_train_, y_arr)
-                    estimated_alphas = alphas_n
-                    break
-                except:
-                    print('removed alpha ' + str(alphas_n[0]))
-                    alphas_n = np.delete(alphas, 0)
-                    gcv = GridSearchCV(
-                        make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1)),
-                        param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in alphas_n]},
-                        cv=cv,
-                        error_score=0.5,
-                        n_jobs=4)
-                if len(alphas_n)<=2:
-                    break
-            if len(alphas_n)<=2:
-                continue
+            score_default = model2.score(x_test.drop(['week', 'outcome'], axis=1), y_test_arr)
+            score = score_default.copy()
+            best_model = model2
+            best_alpha = estimated_alphas[-1]
+            best_coefs = pd.DataFrame(
+                best_model.coef_[:,-1],
+                index=x_train_.columns,
+                columns=["coefficient"]
+            )
 
-        cv_results = pd.DataFrame(gcv.cv_results_)
-        alphas = cv_results.param_coxnetsurvivalanalysis__alphas.map(lambda x: x[0])
-        best_model = gcv.best_estimator_.named_steps["coxnetsurvivalanalysis"]
-        best_coefs = pd.DataFrame(
-            best_model.coef_,
-            index=x_train_.columns,
-            columns=["coefficient"]
-        )
-        best_alpha = best_model.alphas
         #     model_out = CoxnetSurvivalAnalysis(l1_ratio=1, alphas = best_alpha)
         #     model_out.fit(x_train_, y_arr)
 
@@ -354,32 +338,30 @@ if __name__ == "__main__":
 
     if args.ix is None:
         args.ix = 0
-        args.o = 'test_cox_preds_fast'
+    if args.o is None:
+        args.o = 'test_lr_fast'
+        if not os.path.isdir(args.o):
+            os.mkdir(args.o)
+    if args.i is None:
         args.i = 'metabs'
+    if args.type is None:
         args.type = 'auc'
+    if args.week is None:
         args.week = 1
     else:
         args.week = [float(w) for w in args.week.split('_')]
-
     if args.folds is None:
         args.folds = 0
-
     if args.num_folds is None:
         args.num_folds = 5
-
-    if args.seed is None:
-        args.seed = 0
 
     np.random.seed(args.seed)
     if isinstance(args.week, list):
         if len(args.week)==1:
             args.week = args.week[0]
 
-    if args.i == '16s':
-        dl = dataLoader(pt_perc=.05, meas_thresh=10, var_perc=5, pt_tmpts=1)
-    else:
-        dl = dataLoader(pt_perc=.25, meas_thresh=0, var_perc=15, pt_tmpts=1)
-
+    dl = dataLoader(pt_perc={'metabs': .25, '16s': .05, 'scfa': 0}, meas_thresh=
+        {'metabs': 0, '16s': 10, 'scfa': 0}, var_perc={'metabs': 15, '16s': 5, 'scfa': 0})
     if isinstance(args.week, list):
         x, outcomes, event_times = get_slope_data(dl.week[args.i], args.week)
     else:

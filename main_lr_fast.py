@@ -17,8 +17,13 @@ from sklearn.model_selection import StratifiedKFold, GridSearchCV
 
 warnings.filterwarnings("ignore")
 
-def train_lr_folds(x, y, lambda_min_ratio = .001, path_len = 100):
-    skf = StratifiedKFold(n_splits = 5)
+def train_lr_folds(x, y, lambda_min_ratio = .001, path_len = 200, num_folds = 5):
+
+    num_rec = np.sum(y)
+    if num_folds > num_rec:
+        num_folds = num_rec
+
+    skf = StratifiedKFold(n_splits = num_folds)
     splits = skf.split(x, y)
     score_vec = []
     final_res_dict = {}
@@ -30,6 +35,13 @@ def train_lr_folds(x, y, lambda_min_ratio = .001, path_len = 100):
         #     train_index, test_index = ix
         x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
+
+        num_rec = np.sum(y_train)
+        if num_folds > num_rec:
+            nf_inner = num_rec
+        else:
+            nf_inner = num_folds
+
         bval = True
         lam = 0
         while(bval):
@@ -41,7 +53,7 @@ def train_lr_folds(x, y, lambda_min_ratio = .001, path_len = 100):
                 bval = False
         lambda_grid = np.logspace(np.log10(l_max * lambda_min_ratio), np.log10(l_max), path_len)
         lr = LogisticRegression(penalty='l1', class_weight='balanced', solver='liblinear')
-        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+        cv = StratifiedKFold(n_splits=nf_inner, shuffle=True, random_state=0)
         clf = GridSearchCV(lr, {'C': lambda_grid}, cv = cv).fit(x_train, y_train)
 
         cv_results = pd.DataFrame(clf.cv_results_)
@@ -64,7 +76,7 @@ def train_lr_folds(x, y, lambda_min_ratio = .001, path_len = 100):
     return final_res_dict
 
 
-def train_lr(x, y, lambda_min_ratio = .001, path_len = 100, path_out = '', plot_lambdas = False):
+def train_lr(x, y, lambda_min_ratio = .001, path_len = 200, path_out = '', plot_lambdas = False):
     # if feature_grid is None:
     #     feature_grid = np.logspace(7, 20, 14)
     probs = []
@@ -72,7 +84,7 @@ def train_lr(x, y, lambda_min_ratio = .001, path_len = 100, path_out = '', plot_
     model_out_dict = {}
     ix_inner = leave_one_out_cv(x, y)
     lambda_dict = {}
-    l_path = np.logspace(0,9,100)
+    # l_path = np.logspace(0,9,100)
     # m, n = np.shape(x)
     # d_0ii = sigmoid(np.zeros(x.shape[0]))*(1-sigmoid(np.zeros(x.shape[0])))
     # H = (x.T@np.diag(d_0ii))@x
@@ -182,31 +194,35 @@ if __name__ == "__main__":
     parser.add_argument("-type", "--type", help="inpath", type=str)
     parser.add_argument("-week", "--week", help="week", type=str)
     parser.add_argument("-folds", "--folds", help="use_folds", type=str)
+    parser.add_argument("-num_folds", "--num_folds", help="num_folds", type=int)
     args = parser.parse_args()
     mb = basic_ml()
 
     if args.ix is None:
         args.ix = 0
+    if args.o is None:
         args.o = 'test_lr_fast'
         if not os.path.isdir(args.o):
             os.mkdir(args.o)
+    if args.i is None:
         args.i = 'metabs'
+    if args.type is None:
         args.type = 'auc'
+    if args.week is None:
         args.week = 1
     else:
         args.week = [float(w) for w in args.week.split('_')]
-
     if args.folds is None:
-        args.folds = 1
+        args.folds = 0
+    if args.num_folds is None and args.folds == 1:
+        args.num_folds = 5
 
     if isinstance(args.week, list):
         if len(args.week)==1:
             args.week = args.week[0]
 
-    if args.i == '16s':
-        dl = dataLoader(pt_perc=.05, meas_thresh=10, var_perc=5, pt_tmpts=1)
-    else:
-        dl = dataLoader(pt_perc=.25, meas_thresh=0, var_perc=15, pt_tmpts=1)
+    dl = dataLoader(pt_perc={'metabs': .25, '16s': .05, 'scfa': 0}, meas_thresh=
+            {'metabs': 0, '16s': 10, 'scfa': 0}, var_perc={'metabs': 15, '16s': 5, 'scfa': 0})
 
     if isinstance(args.week, list):
         x, y, event_times = get_slope_data(dl.week[args.i], args.week)
@@ -230,12 +246,12 @@ if __name__ == "__main__":
         y_train0, y_test0 = y[train_index], y[test_index]
 
         if args.folds == 1:
-            final_res_dict = train_lr_folds(x_train0, y_train0)
+            final_res_dict = train_lr_folds(x_train0, y_train0, num_folds=args.num_folds)
         else:
             final_res_dict = train_lr(x_train0, y_train0, path_out = path_out)
     elif args.type == 'coef':
         if args.folds == 1:
-            final_res_dict = train_lr_folds(x,y)
+            final_res_dict = train_lr_folds(x,y, num_folds=args.num_folds)
         else:
             final_res_dict = train_lr(x,y, path_out = path_out)
 
