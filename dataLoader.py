@@ -85,7 +85,7 @@ class dataLoader():
                 ix_pt = [ix.split('-')[0] for ix in ix_both]
                 joint = np.hstack((self.week[ck.split('_')[0]][week]['x'].loc[ix_both,:],
                                    self.week[ck.split('_')[1]][week]['x'].loc[ix_both,:]))
-                joint = standardize(joint, override = True)
+                # joint = standardize(joint, override = True)
                 cols = list(self.week[ck.split('_')[0]][week]['x'].columns.values)
                 cols.extend(self.week[ck.split('_')[1]][week]['x'].columns.values)
                 self.week[ck][week]['x'] = pd.DataFrame(joint, index = ix_both, columns = cols)
