@@ -49,7 +49,7 @@ def train_lr_folds(x, y, lambda_min_ratio = .001, path_len = 200, num_folds = 5)
             model2 = LogisticRegression(penalty='l1', class_weight='balanced', C=1 / lam, solver='liblinear')
             model2.fit(x_train, y_train)
             if np.sum(np.abs(model2.coef_))<1e-8:
-                l_max = lam
+                l_max = lam + 1
                 bval = False
         lambda_grid = np.logspace(np.log10(l_max * lambda_min_ratio), np.log10(l_max), path_len)
         lr = LogisticRegression(penalty='l1', class_weight='balanced', solver='liblinear')
@@ -118,7 +118,7 @@ def train_lr(x, y, lambda_min_ratio = .001, path_len = 200, path_out = '', plot_
             model2 = LogisticRegression(penalty='l1', class_weight='balanced', C=1 / lam, solver='liblinear')
             model2.fit(x_train, y_train)
             if np.sum(np.abs(model2.coef_))<1e-8:
-                l_max = lam
+                l_max = lam + 1
                 bval = False
         l_path = np.logspace(np.log10(l_max * lambda_min_ratio), np.log10(l_max), path_len)
         for ic_in2, ix_in2 in enumerate(ix_inner2):
