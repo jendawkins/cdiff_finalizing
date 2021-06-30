@@ -117,6 +117,7 @@ for model in args.models:
                     f.write(my_str.format(0, in_dat, out_path, 'coef', week, use_folds))
                     f.close()
                     os.system('bsub < {}'.format(fname))
+                    time.sleep(0.5)
                 for ii in np.arange(48):
                     fname = model + '_auc_' + in_dat + '_folds' + str(use_folds) + '_week' \
                             + str(week) + 'ix' + str(ii) + '.lsf'
@@ -127,6 +128,7 @@ for model in args.models:
                         f.write(my_str.format(ii, in_dat, out_path, 'auc', week, use_folds))
                         f.close()
                         os.system('bsub < {}'.format(fname))
+                        time.sleep(0.5)
 
 
 
