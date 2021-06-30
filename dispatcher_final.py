@@ -9,9 +9,9 @@ import itertools
 
 my_str = '''
 #!/bin/bash
-#BSUB -J pylab
-#BSUB -o fl.out
-#BSUB -e fl.err
+#BSUB -J test
+#BSUB -o output/test-%J.out
+#BSUB -e output/test-%J.err
 
 # This is a sample script with specific resource requirements for the
 # **bigmemory** queue with 64GB memory requirement and memory
@@ -111,17 +111,18 @@ for model in args.models:
             for in_dat in args.i:
 
                 path_out = out_path + '/' + in_dat + '/'
-                fname = 'cdiff_lr.lsf'
+                fname = model + '_coef_' + in_dat + '_folds' + str(use_folds) + '_week' + str(week) + '.lsf'
                 if not os.path.exists(path_out + 'coef' + '_ix_' + str(0) + '.pkl'):
                     f = open(fname, 'w')
                     f.write(my_str.format(0, in_dat, out_path, 'coef', week, use_folds))
                     f.close()
                     os.system('bsub < {}'.format(fname))
                 for ii in np.arange(48):
+                    fname = model + '_auc_' + in_dat + '_folds' + str(use_folds) + '_week' \
+                            + str(week) + 'ix' + str(ii) + '.lsf'
                     if os.path.exists(path_out + 'auc' + '_ix_' + str(ii) + '.pkl'):
                         continue
                     else:
-                        fname = 'cdiff_lr.lsf'
                         f = open(fname, 'w')
                         f.write(my_str.format(ii, in_dat, out_path, 'auc', week, use_folds))
                         f.close()
