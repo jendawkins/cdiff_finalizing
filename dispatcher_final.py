@@ -116,6 +116,7 @@ for model in args.models:
                     f = open(fname, 'w')
                     f.write(my_str.format(0, in_dat, out_path, 'coef', week, use_folds))
                     f.close()
+                    print(my_str.format(0, in_dat, out_path, 'coef', week, use_folds))
                     os.system('bsub < {}'.format(fname))
                     time.sleep(0.5)
                 for ii in np.arange(48):
