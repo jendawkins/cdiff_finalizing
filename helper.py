@@ -29,7 +29,9 @@ def get_slope_data(dat_dict, weeks):
     etimes = {}
     for pt, count in counts.iteritems():
         if count >= 2:
-            slope_data[pt], intercept = np.polyfit([float(i) for i in dd[pt]],[dat_dict[float(i)]['x'].loc[pt + '-' + i] for i in dd[pt]],1)
+            slope_data[pt], intercept = np.polyfit(
+                [float(i) for i in dd[pt]],
+                [dat_dict[float(i)]['x'].loc[pt + '-' + i].values for i in dd[pt]],1)
             for week in weeks:
                 try:
                     y[pt] = dat_dict[week]['y'][pt]
