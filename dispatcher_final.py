@@ -111,7 +111,7 @@ for model in args.models:
             for in_dat in args.i:
 
                 path_out = out_path + '/' + in_dat + '/'
-                fname = model + '_coef_' + in_dat + '_folds' + str(use_folds) + '_week' + str(week) + '.lsf'
+                fname = 'cdiff.lsf'
                 if not os.path.exists(path_out + 'coef' + '_ix_' + str(0) + '.pkl'):
                     f = open(fname, 'w')
                     f.write(my_str.format(0, in_dat, out_path, 'coef', week, use_folds))
@@ -119,8 +119,6 @@ for model in args.models:
                     os.system('bsub < {}'.format(fname))
                     time.sleep(0.5)
                 for ii in np.arange(48):
-                    fname = model + '_auc_' + in_dat + '_folds' + str(use_folds) + '_week' \
-                            + str(week) + 'ix' + str(ii) + '.lsf'
                     if os.path.exists(path_out + 'auc' + '_ix_' + str(ii) + '.pkl'):
                         continue
                     else:

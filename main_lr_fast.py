@@ -240,7 +240,6 @@ if __name__ == "__main__":
 
     if args.type == 'auc':
         ixs = leave_one_out_cv(x, y)
-        args.ix = np.where(y==1)[0][0]
         train_index, test_index = ixs[args.ix]
         x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train0, y_test0 = y[train_index], y[test_index]

@@ -37,7 +37,7 @@ def train_with_inner_folds(x, num_folds = 5):
         if len(np.unique(y_test_arr)) == 1:
             continue
 
-        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=200, alpha_min_ratio=0.001)
+        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=200, alpha_min_ratio='auto')
 
         week = x_train['week']
         outcome = x_train['outcome']
@@ -55,7 +55,7 @@ def train_with_inner_folds(x, num_folds = 5):
         try:
             gcv = GridSearchCV(
                 make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=200,
-                                                                       alpha_min_ratio=0.001)),
+                                                                       alpha_min_ratio='auto', max_iter=100)),
                 param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in alphas]},
                 cv=cv,
                 error_score=0.5,
@@ -113,7 +113,7 @@ def train_with_folds(x, num_folds = 5):
         if len(np.unique(y_test_arr))==1:
             continue
 
-        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=0.001, n_alphas = 200)
+        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio='auto', n_alphas = 200)
         warnings.simplefilter("ignore")
         model2.fit(x_train_, y_arr)
 

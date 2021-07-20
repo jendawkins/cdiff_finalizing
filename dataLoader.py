@@ -27,6 +27,7 @@ class dataLoader():
         self.load_ba_data()
         self.load_16s_data()
         self.load_SCFA_data()
+        self.load_toxin_cdiff_data()
         self.keys = {'metabs':self.cdiff_data_dict,'16s':self.data16s_dict,'bile_acids':self.ba_data,
                      'scfa': self.data_scfa_dict}
 
@@ -91,7 +92,13 @@ class dataLoader():
                 self.week[ck][week]['x'] = pd.DataFrame(joint, index = ix_both, columns = cols)
                 self.week[ck][week]['y'] = self.week[ck.split('_')[0]][week]['y'][ix_pt]
                 self.week[ck][week]['event_times'] = self.week[ck.split('_')[0]][week]['event_times'][ix_pt]
-
+        self.week['metabs_toxin']={}
+        for week in [0,1,1.5,2,2.5,3,3.5,4]:
+            self.week['metabs_toxin'][week] = {}
+            df = self.week['metabs'][week]['x'].copy()
+            self.week['metabs_toxin'][week]['x'] = pd.concat([df, self.toxin_data.loc[df.index.values,:]], axis = 1)
+            self.week['metabs_toxin'][week]['y'] = self.week['metabs'][week]['y']
+            self.week['metabs_toxin'][week]['event_times'] = self.week['metabs'][week]['event_times']
 
     def load_cdiff_data(self):
         xl = pd.ExcelFile(self.path + '/' + self.filename_cdiff)
@@ -183,10 +190,21 @@ class dataLoader():
         self.ba_data['targets_by_pt'] = pd.Series(self.targets_by_pt_ba)
         self.ba_data['targets'] = pd.Series(self.targets_dict_ba).drop(labels = 'Study Pool Sample')
 
+    def load_toxin_cdiff_data(self):
+        self.toxin_fname = pd.ExcelFile(self.path + '/' + self.filename_toxin)
+        self.toxin_data = self.toxin_fname.parse('ToxB',header = 4, index_col = 0)
+        self.toxin_data = self.toxin_data.drop('Crimson ID', axis=1)
+        self.toxin_data = ((self.toxin_data.replace(
+            '+', 1)).replace('-', 0)).replace('<0.5', 0)
+        self.toxin_data = self.toxin_data.replace(
+            'Not done - no sample available', 0).fillna(0)
+        self.toxin_data = self.toxin_data.iloc[:,:4]
+
     def filter_transform(self, data, targets_by_pt, key = 'metabs', filter = True):
         if filter:
             filt1 = filter_by_pt(data, targets_by_pt, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
                                  meas_thresh=self.meas_thresh)
+            # print(key + ', 1st filter: ' + str(filt1.shape))
         else:
             filt1 = data
         epsilon = get_epsilon(filt1)
@@ -205,6 +223,7 @@ class dataLoader():
             filt2 = filter_vars(stand, perc=self.var_perc)
         else:
             filt2 = stand
+        # print(key + ', 2nd filter: ' + str(filt2.shape))
         return filt2
 
 
