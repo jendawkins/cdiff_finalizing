@@ -76,7 +76,11 @@ def train_lr_folds(x, y, lambda_min_ratio = .001, path_len = 200, num_folds = 5)
     return final_res_dict
 
 
-def train_lr(x, y, lambda_min_ratio = .001, path_len = 200, path_out = '', plot_lambdas = False):
+def train_lr(x, y, path_len = 300, path_out = '', plot_lambdas = False):
+    if x.shape[0] < x.shape[1]:
+        lambda_min_ratio = 0.0001
+    else:
+        lambda_min_ratio = 0.01
     # if feature_grid is None:
     #     feature_grid = np.logspace(7, 20, 14)
     probs = []
@@ -84,16 +88,7 @@ def train_lr(x, y, lambda_min_ratio = .001, path_len = 200, path_out = '', plot_
     model_out_dict = {}
     ix_inner = leave_one_out_cv(x, y)
     lambda_dict = {}
-    # l_path = np.logspace(0,9,100)
-    # m, n = np.shape(x)
-    # d_0ii = sigmoid(np.zeros(x.shape[0]))*(1-sigmoid(np.zeros(x.shape[0])))
-    # H = (x.T@np.diag(d_0ii))@x
-    # w_0 = (x@x.T)@(sigmoid(np.zeros(x.shape[0]))*(1-sigmoid(np.zeros(x.shape[0]))))
-    # d_0 = x.T@(sigmoid(np.zeros(x.shape[0])) - y)
-    # z_0 = x@np.zeros(x.shape[1]) - (1/w_0)*d_0
-    # l_max = np.max([(1/(x.shape[0]))*np.sum(w_0*x.iloc[:,j]*z_0) for j in np.arange(x.shape[1])])
-    # l_max = max(list(abs(np.dot(np.transpose(x), y))))/ m
-    # l_path = np.linspace(l_max*lambda_min_ratio,l_max, path_len)
+
     for ic_in, ix_in in enumerate(ix_inner):
         train_index, test_index = ix_in
         x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
@@ -209,7 +204,7 @@ if __name__ == "__main__":
     if args.type is None:
         args.type = 'auc'
     if args.week is None:
-        args.week = 1
+        args.week = [1,1.5,2]
     else:
         args.week = [float(w) for w in args.week.split('_')]
     if args.folds is None:
@@ -221,7 +216,7 @@ if __name__ == "__main__":
         if len(args.week)==1:
             args.week = args.week[0]
 
-    dl = dataLoader(pt_perc={'metabs': .25, '16s': .05, 'scfa': 0}, meas_thresh=
+    dl = dataLoader(pt_perc={'metabs': .25, '16s': .1, 'scfa': 0}, meas_thresh=
             {'metabs': 0, '16s': 10, 'scfa': 0}, var_perc={'metabs': 15, '16s': 5, 'scfa': 0})
 
     if isinstance(args.week, list):
