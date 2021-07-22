@@ -81,6 +81,9 @@ args = parser.parse_args()
 if isinstance(args.weeks, list):
     args.weeks.append([1,1.5,2])
 
+if not args.weeks:
+    args.weeks = [[1,1.5,2]]
+
 for model in args.models:
     if model == 'cox':
         my_str = my_str + my_str_cox
