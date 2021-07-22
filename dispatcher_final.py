@@ -99,7 +99,7 @@ for model in args.models:
 
         for use_folds in args.folds:
             if use_folds == 1:
-                f_folder = 'FinalFolds'
+                f_folder = 'FinalFinalFolds'
             else:
                 f_folder = 'FinalRuns'
             if not os.path.isdir(f_folder):
