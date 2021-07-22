@@ -68,7 +68,7 @@ my_str_cox = '''python3 ./main_cox_fast.py -ix {0} -i {1} -o {2} -type {3} -week
 # my_str_lr = '''python ./main_parallel.py -ix {0} -i {1} -o {2} -type {3} -week {4}'''
 my_str_lr = '''python3 ./main_lr_fast.py -ix {0} -i {1} -o {2} -type {3} -week {4} -folds {5}'''
 
-my_str_rf = '''python3 ./rf_simple.py -random_state {0} -i {1} -o {2} -type {3} -week {4} -folds {5}'''
+my_str_rf = '''python3 ./rf_nested.py -ix {0} -i {1} -o {2} -type {3} -week {4} -folds {5}'''
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-o","--o",help = 'out file', type = str)
