@@ -78,7 +78,8 @@ parser.add_argument("-weeks","--weeks",help = 'week', type = float, nargs='+')
 parser.add_argument("-i","--i",help = 'input data', type = str, nargs = '+')
 args = parser.parse_args()
 
-if isinstance(args.weeks, list):
+if 99 in args.weeks:
+    args.weeks.remove(99)
     args.weeks.append([1,1.5,2])
 
 if not args.weeks:
@@ -102,7 +103,7 @@ for model in args.models:
 
         for use_folds in args.folds:
             if use_folds == 1:
-                f_folder = 'FinalFinalFolds'
+                f_folder = 'FinalFolds'
             else:
                 f_folder = 'FinalRuns'
             if not os.path.isdir(f_folder):
@@ -119,7 +120,6 @@ for model in args.models:
                     f = open(fname, 'w')
                     f.write(my_str.format(0, in_dat, out_path, 'coef', week, use_folds))
                     f.close()
-                    print(my_str.format(0, in_dat, out_path, 'coef', week, use_folds))
                     os.system('bsub < {}'.format(fname))
                     time.sleep(0.5)
                 for ii in np.arange(48):
