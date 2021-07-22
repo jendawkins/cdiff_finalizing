@@ -9,9 +9,9 @@ import itertools
 
 my_str = '''
 #!/bin/bash
-#BSUB -J test
-#BSUB -o output/test-%J.out
-#BSUB -e output/test-%J.err
+#BSUB -J cdiff
+#BSUB -o output/cdiff-%J.out
+#BSUB -e output/cdiff-%J.err
 
 # This is a sample script with specific resource requirements for the
 # **bigmemory** queue with 64GB memory requirement and memory
