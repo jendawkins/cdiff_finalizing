@@ -10,8 +10,8 @@ import itertools
 my_str = '''
 #!/bin/bash
 #BSUB -J cdiff
-#BSUB -o output/cdiff-%J.out
-#BSUB -e output/cdiff-%J.err
+#BSUB -o output/${6}${1}${4}/cdiff-${0}-%J.out
+#BSUB -e output/${6}${1}${4}/cdiff-${0}-%J.err
 
 # This is a sample script with specific resource requirements for the
 # **bigmemory** queue with 64GB memory requirement and memory
@@ -112,13 +112,17 @@ for model in args.models:
             out_path = f_folder + '/' + model + '_week' + str(wname)
             if not os.path.isdir(out_path):
                 os.mkdir(out_path)
-            for in_dat in args.i:
 
+            for in_dat in args.i:
+                if not os.path.isdir('output'):
+                    os.mkdir('output')
+                if not os.path.isdir('output/' +model + in_dat + week):
+                    os.mkdir('output/' +model + in_dat + week)
                 path_out = out_path + '/' + in_dat + '/'
                 fname = 'cdiff.lsf'
                 if not os.path.exists(path_out + 'coef' + '_ix_' + str(0) + '.pkl'):
                     f = open(fname, 'w')
-                    f.write(my_str.format(0, in_dat, out_path, 'coef', week, use_folds))
+                    f.write(my_str.format(0, in_dat, out_path, 'coef', week, use_folds, model))
                     f.close()
                     os.system('bsub < {}'.format(fname))
                     time.sleep(0.5)
@@ -127,7 +131,7 @@ for model in args.models:
                         continue
                     else:
                         f = open(fname, 'w')
-                        f.write(my_str.format(ii, in_dat, out_path, 'auc', week, use_folds))
+                        f.write(my_str.format(ii, in_dat, out_path, 'auc', week, use_folds, model))
                         f.close()
                         os.system('bsub < {}'.format(fname))
                         time.sleep(0.5)
