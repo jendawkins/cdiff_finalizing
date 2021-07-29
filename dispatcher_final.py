@@ -116,8 +116,8 @@ for model in args.models:
             for in_dat in args.i:
                 if not os.path.isdir('output'):
                     os.mkdir('output')
-                if not os.path.isdir('output/' +model + in_dat + week):
-                    os.mkdir('output/' +model + in_dat + week)
+                if not os.path.isdir('output/' +model + in_dat + str(week)):
+                    os.mkdir('output/' +model + in_dat + str(week))
                 path_out = out_path + '/' + in_dat + '/'
                 fname = 'cdiff.lsf'
                 if not os.path.exists(path_out + 'coef' + '_ix_' + str(0) + '.pkl'):
