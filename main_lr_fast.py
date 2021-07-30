@@ -200,11 +200,11 @@ if __name__ == "__main__":
         if not os.path.isdir(args.o):
             os.mkdir(args.o)
     if args.i is None:
-        args.i = 'metabs'
+        args.i = 'metabs_toxin'
     if args.type is None:
         args.type = 'auc'
     if args.week is None:
-        args.week = [1,1.5,2]
+        args.week = 0
     else:
         args.week = [float(w) for w in args.week.split('_')]
     if args.folds is None:

@@ -198,6 +198,8 @@ class dataLoader():
             '+', 1)).replace('-', 0)).replace('<0.5', 0)
         self.toxin_data = self.toxin_data.replace(
             'Not done - no sample available', 0).fillna(0)
+        self.toxin_data = self.toxin_data.replace(
+            'Not done  - no sample available', 0).fillna(0)
         self.toxin_data = self.toxin_data.iloc[:,:4]
 
     def filter_transform(self, data, targets_by_pt, key = 'metabs', filter = True):
