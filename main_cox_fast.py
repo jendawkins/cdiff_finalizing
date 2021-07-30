@@ -32,12 +32,14 @@ def train_with_inner_folds(x, num_folds = 5):
         train_index, test_index = ix_in
         x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
 
+        if np.sum(x_test['outcome'].values<1):
+            continue
         y_test = list(zip(x_test['outcome'], x_test['week']))
         y_test_arr = np.array(y_test, dtype=[('e.tdm', '?'), ('t.tdm', '<f8')])
         if len(np.unique(y_test_arr)) == 1:
             continue
 
-        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=200, alpha_min_ratio='auto')
+        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=300, alpha_min_ratio='auto')
 
         week = x_train['week']
         outcome = x_train['outcome']
@@ -54,7 +56,7 @@ def train_with_inner_folds(x, num_folds = 5):
         alphas = model2.alphas_
         try:
             gcv = GridSearchCV(
-                make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=200,
+                make_pipeline(StandardScaler(), CoxnetSurvivalAnalysis(l1_ratio=1, n_alphas=300,
                                                                        alpha_min_ratio='auto', max_iter=100)),
                 param_grid={"coxnetsurvivalanalysis__alphas": [[v] for v in alphas]},
                 cv=cv,
@@ -113,7 +115,7 @@ def train_with_folds(x, num_folds = 5):
         if len(np.unique(y_test_arr))==1:
             continue
 
-        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio='auto', n_alphas = 200)
+        model2 = CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio='auto', n_alphas = 300)
         warnings.simplefilter("ignore")
         model2.fit(x_train_, y_arr)
 
@@ -210,7 +212,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
         e_outcomes_dict = {}
         score_dict = {}
 
-        coxnet_pipe = CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=0.001,n_alphas=200)
+        coxnet_pipe = CoxnetSurvivalAnalysis(l1_ratio=1, alpha_min_ratio=0.001,n_alphas=300)
 
         coxnet_pipe.fit(x_train_, y_arr)
         alphas = coxnet_pipe.alphas_
@@ -343,7 +345,7 @@ if __name__ == "__main__":
         if not os.path.isdir(args.o):
             os.mkdir(args.o)
     if args.i is None:
-        args.i = 'metabs'
+        args.i = '16s'
     if args.type is None:
         args.type = 'auc'
     if args.week is None:
