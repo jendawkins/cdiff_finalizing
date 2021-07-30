@@ -65,6 +65,7 @@ cd /PHShome/jjd65/cdiff_finalizing
 
 my_str_cox = '''python3 ./main_cox_fast.py -ix {0} -i {1} -o {2} -type {3} -week {4} -folds {5}'''
 
+my_str_cox2 = '''python3 ./main_cox_2.py -ix {0} -i {1} -o {2} -type {3} -week {4} -folds {5}'''
 # my_str_lr = '''python ./main_parallel.py -ix {0} -i {1} -o {2} -type {3} -week {4}'''
 my_str_lr = '''python3 ./main_lr_fast.py -ix {0} -i {1} -o {2} -type {3} -week {4} -folds {5}'''
 
@@ -92,6 +93,8 @@ for model in args.models:
         my_str = my_str + my_str_lr
     elif model == 'RF':
         my_str = my_str + my_str_rf
+    elif model == 'cox2':
+        my_str = my_str + my_str_cox2
 
     for week in args.weeks:
         if isinstance(week, list):
