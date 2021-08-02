@@ -30,7 +30,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
     event_outcomes = []
     score_vec = []
     model_out_dict = {}
-    ix_inner = outer_split(x, x['outcome'], num_folds=num_folds)
+    ix_inner = outer_split(x, x['outcome'], num_folds=None)
     lambda_dict = {}
     for ic_in, ix_in in enumerate(ix_inner):
         train_index, test_index = ix_in
@@ -45,7 +45,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
         yy = list(zip(outcome, week))
         y_arr = np.array(yy, dtype = [('e.tdm', '?'), ('t.tdm', '<f8')])
 
-        ix_inner2 = inner_split(x_train, x_train['outcome'], num_folds = num_folds)
+        ix_inner2 = inner_split(x_train, x_train['outcome'], num_folds = None)
         lamb_dict = {}
         lamb_dict['auc'] = {}
         lamb_dict['ci'] = {}
