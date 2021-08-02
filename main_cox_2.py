@@ -233,16 +233,10 @@ if __name__ == "__main__":
         train_index, test_index = ixs[args.ix]
         x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
 
-        if args.folds == 1:
-            final_res_dict = train_with_folds(x_train0, num_folds=args.num_folds)
-        else:
-            final_res_dict = train_with_inner_folds(x_train0, num_folds=args.num_folds)
+        final_res_dict = train_cox(x_train0, num_folds=args.num_folds)
             # final_res_dict = train_cox(x_train0)
     elif args.type == 'coef':
-        if args.folds == 1:
-            final_res_dict = train_with_folds(x, num_folds=args.num_folds)
-        else:
-            final_res_dict = train_with_inner_folds(x, num_folds=args.num_folds)
+        final_res_dict = train_cox(x, num_folds=args.num_folds)
             # final_res_dict = train_cox(x)
 
     final_res_dict['data'] = x
