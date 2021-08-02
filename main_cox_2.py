@@ -36,7 +36,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
         train_index, test_index = ix_in
         x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
 
-        if np.sum(x_test['outcome'].values<1):
+        if np.sum(x_test['outcome'].values)<1:
             continue
 
         week = x_train['week']
@@ -69,7 +69,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
             train_ix, test_ix = ix_in2
             x_tr2, x_ts2 = x_train.iloc[train_ix, :], x_train.iloc[test_ix, :]
 
-            if np.sum(x_tr2['outcome'].values < 1):
+            if np.sum(x_tr2['outcome'].values) < 1:
                 continue
 
             y_test = list(zip(x_ts2['outcome'], x_ts2['week']))
@@ -156,7 +156,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
         if len(test_index) > 1:
             score_vec.append(concordance_index_censored(x_test['outcome'].astype(bool), x_test['week'], risk_scores)[0])
 
-    if len(test_index) > 1:
+    if len(score_vec) > 1:
         score = sum(score_vec)/len(score_vec)
     else:
         score, concordant, discondordant, tied_risk, tied_time = concordance_index_censored(
