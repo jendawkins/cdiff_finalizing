@@ -121,8 +121,10 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
                 e_outcomes_dict[i][ic_in2] = x_ts2['outcome']
 
                 if len(test_ix)>=2:
-                    score_dict[i][ic_in2], _, _,_,_ = concordance_index_censored(e_outcomes_dict[i][ic_in2].astype(bool), e_times_dict[i][ic_in2],
+                    ci = concordance_index_censored(e_outcomes_dict[i][ic_in2].astype(bool), e_times_dict[i][ic_in2],
                                                                        hazards_dict[i][ic_in2])
+                    if not np.isnan(ci):
+                        score_dict[i][ic_in2], _, _,_,_ = ci
 
 
         if len(score_dict[i]) > 0:
@@ -154,7 +156,9 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
 
         model_out_dict[ic_in] = model_out
         if len(test_index) > 1:
-            score_vec.append(concordance_index_censored(x_test['outcome'].astype(bool), x_test['week'], risk_scores)[0])
+            ci = concordance_index_censored(x_test['outcome'].astype(bool), x_test['week'], risk_scores)[0]
+            if not np.isnan(ci):
+                score_vec.append(ci)
 
     if len(score_vec) > 1:
         score = sum(score_vec)/len(score_vec)
