@@ -17,7 +17,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import StratifiedKFold, GridSearchCV
 warnings.filterwarnings("ignore")
 
-def train_with_inner_folds(x, num_folds = None):
+def train_with_inner_folds(x, num_folds = 5):
     final_res_dict = {}
     scores = []
 
