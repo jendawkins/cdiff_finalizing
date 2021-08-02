@@ -122,9 +122,9 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
 
                 if len(test_ix)>=2:
                     ci = concordance_index_censored(e_outcomes_dict[i][ic_in2].astype(bool), e_times_dict[i][ic_in2],
-                                                                       hazards_dict[i][ic_in2])
+                                                                       hazards_dict[i][ic_in2])[0]
                     if not np.isnan(ci):
-                        score_dict[i][ic_in2], _, _,_,_ = ci
+                        score_dict[i][ic_in2] = ci
 
 
         if len(score_dict[i]) > 0:
