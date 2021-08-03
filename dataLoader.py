@@ -75,7 +75,6 @@ class dataLoader():
                 self.week[key][week]['x'] = standardize(self.week[key][week]['x'])
                 self.week_filt[key][week] = self.get_week_x_step_ahead(temp_filt, value['targets_by_pt'],
                                                                   week=week)
-                self.week_filt[key][week]['x'] = standardize(self.week_filt[key][week]['x'])
                 self.week_raw[key][week] = self.get_week_x_step_ahead(value['data'], value['targets_by_pt'],
                                                                       week=week)
 
