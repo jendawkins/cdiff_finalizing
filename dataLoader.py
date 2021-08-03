@@ -72,10 +72,10 @@ class dataLoader():
                                      meas_thresh=self.meas_thresh)
             for week in [0,1,1.5,2,2.5,3,3.5,4]:
                 self.week[key][week] = self.get_week_x_step_ahead(value['filtered_data'], value['targets_by_pt'], week = week)
-                self.week[key][week] = standardize(self.week[key][week])
+                self.week[key][week]['x'] = standardize(self.week[key][week]['x'])
                 self.week_filt[key][week] = self.get_week_x_step_ahead(temp_filt, value['targets_by_pt'],
                                                                   week=week)
-                self.week_filt[key][week] = standardize(self.week_filt[key][week])
+                self.week_filt[key][week]['x'] = standardize(self.week_filt[key][week]['x'])
                 self.week_raw[key][week] = self.get_week_x_step_ahead(value['data'], value['targets_by_pt'],
                                                                       week=week)
 
