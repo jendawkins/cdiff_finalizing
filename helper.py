@@ -59,7 +59,7 @@ def bh_corr(pvals, alpha = 0.05):
     corrected_f[ix_sort] = corrected
     return corrected_f, p_sort[L]
 
-def standardize(x,override = False):
+def standardize(x,override = True):
     if not override:
         assert(x.shape[0]<x.shape[1])
 
@@ -88,7 +88,7 @@ def get_percentiles(dat, interval = 90, digits = 4, coef = False):
 def get_mad(vals, axis = 0):
     return np.median(np.abs(vals - np.mean(vals, axis)), axis)
 
-def get_mad_interval(median, mad, param, digits = 4):
+def get_mad_interval(median, mad, param=None, digits = 4):
     if param == 'coef':
         upper = np.round(np.exp(median + mad),4)
         lower = np.round(np.exp(median - mad),4)
