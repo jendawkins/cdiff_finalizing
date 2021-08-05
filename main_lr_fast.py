@@ -217,7 +217,7 @@ if __name__ == "__main__":
             args.week = args.week[0]
 
     dl = dataLoader(pt_perc={'metabs': .25, '16s': .1, 'scfa': 0}, meas_thresh=
-            {'metabs': 0, '16s': 10, 'scfa': 0}, var_perc={'metabs': 15, '16s': 5, 'scfa': 0})
+            {'metabs': 0, '16s': 10, 'scfa': 0}, var_perc={'metabs': 25, '16s': 5, 'scfa': 0})
 
     if isinstance(args.week, list):
         x, y, event_times = get_slope_data(dl.week[args.i], args.week)
