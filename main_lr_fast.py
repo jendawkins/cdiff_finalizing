@@ -153,7 +153,10 @@ def train_lr(x, y, path_len = 300, path_out = '', plot_lambdas = False):
             plt.ylabel('auc')
             plt.savefig(path_out + '/fold' +str(ic_in) + '.pdf')
 
-        ix_max = np.argmax(aucs_in)
+        ma = moving_average(aucs_in, n=5)
+        offset = int(np.floor(5. / 2))
+        ix_max = np.argmax(ma) + offset
+        # ix_max = np.argmax(aucs_in)
         best_lamb = l_path[lambdas[ix_max]]
 
         lambda_dict[ic_in] = {'best_lambda': best_lamb, 'scores': scores, 'outcomes':y_true,

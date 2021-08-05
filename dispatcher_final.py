@@ -108,7 +108,7 @@ for model in args.models:
             if use_folds == 1:
                 f_folder = 'FinalFolds'
             else:
-                f_folder = 'FinalRuns_LR_Aug5'
+                f_folder = 'FinalRuns_LR_Aug5_MA'
             if not os.path.isdir(f_folder):
                 os.mkdir(f_folder)
 
