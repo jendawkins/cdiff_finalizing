@@ -355,7 +355,7 @@ if __name__ == "__main__":
     if args.folds is None:
         args.folds = 0
     if args.num_folds is None:
-        args.num_folds = None
+        args.num_folds = 5
 
     np.random.seed(args.seed)
     if isinstance(args.week, list):
