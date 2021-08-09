@@ -8,7 +8,7 @@ class dataLoader():
             filename_toxin = 'Toxin B and C. difficile Isolation Results.xlsx',
                  filename_CSgps = '20200120_HumanCarbonSourceMap.xlsx',
                  filename_scfa = 'PrecisionSCFAResultsHumanStool.xlsx',
-                 pt_perc = 0.25, meas_thresh = 10, var_perc = 5, pt_tmpts = 1):
+                 pt_perc = 0.25, meas_thresh = 10, var_perc = 5, pt_tmpts = 2):
         
         self.path = path
         self.filename_cdiff = filename_cdiff
@@ -41,6 +41,7 @@ class dataLoader():
         self.week_one = {}
         self.week_raw = {}
         self.week_filt = {}
+        self.week_stand = {}
         for key, value in self.keys.items():
             if isinstance(pt_perc, dict):
                 if key not in pt_perc.keys():
@@ -61,6 +62,7 @@ class dataLoader():
             self.week[key] = {}
             self.week_raw[key] = {}
             self.week_filt[key] = {}
+            self.week_stand[key] = {}
             value['data'] = value['data'].fillna(0)
             value['targets'] = value['targets'].replace('Recur', 'Recurrer').replace('Cleared','Non-recurrer')
             value['targets_by_pt'] = value['targets_by_pt'].replace('Recur', 'Recurrer').replace('Cleared', 'Non-recurrer')
@@ -69,9 +71,10 @@ class dataLoader():
             #
             # self.week_one[key] = temp['x'], temp['y']
             temp_filt = filter_by_pt(value['data'], targets=None, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
-                                     meas_thresh=self.meas_thresh)
+                                     meas_thresh=self.meas_thres)
             for week in [0,1,1.5,2,2.5,3,3.5,4]:
                 self.week[key][week] = self.get_week_x_step_ahead(value['filtered_data'], value['targets_by_pt'], week = week)
+                # self.week_stand[key][week] = self.week[key][week].copy()
                 self.week[key][week]['x'] = standardize(self.week[key][week]['x'])
                 self.week_filt[key][week] = self.get_week_x_step_ahead(temp_filt, value['targets_by_pt'],
                                                                   week=week)
