@@ -299,11 +299,12 @@ def filter_by_pt(dataset, targets=None, perc = .15, pt_thresh = 1, meas_thresh =
     if pt_thresh > 1:
         for pt in pts:
             ixs = np.where(np.array(pts) == pt)[0]
+            mets_pt = mets[ixs,:]
             tmpts_pt = np.array(tmpts)[ixs]
-            mets_counts = np.sum(mets, 1).astype('int')
+            mets_counts = np.sum(mets_pt, 0).astype('int')
             met_rm_ixs = np.where(mets_counts < pt_thresh)[0]
             for ix in ixs:
-                mets[met_rm_ixs, ix] = 0
+                mets[ix, met_rm_ixs] = 0
 
     mets_all_keep = []
     # For each class, count how many measurements exist within that class and keep only measurements in X perc in each class
@@ -327,45 +328,53 @@ def asv_to_name(asv, tax_dat = ['inputs/dada2-taxonomy-rdp.csv','inputs/dada2-ta
     met_class = []
 
     if len(asv)>100:
-        classification = []
-        for i,td in enumerate(tdat):
-            td_out = np.array([str(x) for x in td[asv]])[-2:]
-            td_out = [t for t in td_out if t != 'nan']
-            classification.append(' '.join(td_out))
-
-        
-        cl = np.unique(classification)
-        if len(cl) > 1:
-            cl = cl[0] + ' ; ' + cl[1]
-            met_class = cl
+        if 'tax_dat.csv' in tax_dat:
+            td_out = tdat[0]
+            met_class = td_out['genus_species'].loc[tdat.index.values == asv]
         else:
-            met_class = cl[0]
+            classification = []
+            for i,td in enumerate(tdat):
+                td_out = np.array([str(x) for x in td[asv]])[-2:]
+                td_out = [t for t in td_out if t != 'nan']
+                classification.append(' '.join(td_out))
+
+
+            cl = np.unique(classification)
+            if len(cl) > 1:
+                cl = cl[0] + ' ; ' + cl[1]
+                met_class = cl
+            else:
+                met_class = cl[0]
     return met_class
 
-def return_taxa_names(sequences, tax_dat = ['inputs/dada2-taxonomy-rdp.csv','inputs/dada2-taxonomy-silva.csv']):
+def return_taxa_names(sequences, tax_dat = ['inputs/tax_dat.csv']):
     tdat = [pd.read_csv(t) for t in tax_dat]
     met_class = []
     for metab in sequences:
         if len(metab)>100:
-            classification = []
-            for i,td in enumerate(tdat):
-                td_out = np.array([str(x) for x in td[metab]])[-2:]
-                td_out = [t for t in td_out if t != 'nan']
-                classification.append(' '.join(td_out))
-
-            
-            cl = np.unique(classification)
-            if len(cl) > 1:
-                cl = cl[0] + ' ; ' + cl[1]
-                met_class.append(cl)
+            if 'tax_dat.csv' in tax_dat:
+                td_out = tdat[0]
+                met_class.append(td_out['genus_species'].loc[tdat.index.values == metab])
             else:
-                met_class.append(cl[0])
+                classification = []
+                for i,td in enumerate(tdat):
+                    td_out = np.array([str(x) for x in td[metab]])[-2:]
+                    td_out = [t for t in td_out if t != 'nan']
+                    classification.append(' '.join(td_out))
+
+
+                cl = np.unique(classification)
+                if len(cl) > 1:
+                    cl = cl[0] + ' ; ' + cl[1]
+                    met_class.append(cl)
+                else:
+                    met_class.append(cl[0])
         else:
             met_class.append(metab)
     return met_class 
 
 
-def return_sig_biomarkers(dset_name,data = None, tax_dat = ['inputs/dada2-taxonomy-rdp.csv','inputs/dada2-taxonomy-silva.csv'], thresh = 10):
+def return_sig_biomarkers(dset_name,data = None, tax_dat = ['inputs/tax_dat.csv'], thresh = 10):
     df_new = pd.read_csv(dset_name) 
   
     # saving xlsx file 
