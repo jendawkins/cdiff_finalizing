@@ -71,7 +71,7 @@ class dataLoader():
             #
             # self.week_one[key] = temp['x'], temp['y']
             temp_filt = filter_by_pt(value['data'], targets=None, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
-                                     meas_thresh=self.meas_thres)
+                                     meas_thresh=self.meas_thresh)
             for week in [0,1,1.5,2,2.5,3,3.5,4]:
                 self.week[key][week] = self.get_week_x_step_ahead(value['filtered_data'], value['targets_by_pt'], week = week)
                 # self.week_stand[key][week] = self.week[key][week].copy()
@@ -293,6 +293,5 @@ class dataLoader():
         return {'x':data_all,'y':targets_out}
 
 if __name__ == "__main__":
-    dl = dataLoader(pt_perc={'metabs': .25, '16s': .05, 'scfa': 0},
-                    meas_thresh={'metabs': 0, '16s': 10, 'scfa': 0},
-                    var_perc={'metabs': 15, '16s': 5, 'scfa': 0})
+    dl = dataLoader(pt_perc={'metabs': .25, '16s': .1, 'scfa': 0}, meas_thresh=
+    {'metabs': 0, '16s': 10, 'scfa': 0}, var_perc={'metabs': 15, '16s': 5, 'scfa': 0})
