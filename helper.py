@@ -10,7 +10,15 @@ import os
 import scipy.stats as st
 from collections import defaultdict
 
-def get_slope_data(dat_dict, weeks):
+
+def get_slope_data(dl, key, weeks, combine_features = 'intersection'):
+    dat_dict = dl.week[key]
+    if combine_features == 'intersection':
+        features = list(set.intersection(*[set(dat_dict[week]['x'].columns.values) for week in weeks]))
+    else:
+        features = np.unique(np.concatenate([dat_dict[week]['x'].columns.values for week in weeks]))
+    x_dat = {week: dl.filter_transform(dl.week_raw[key][week]['x'][features],
+                                   targets_by_pt=None, key=key, filter=False) for week in weeks}
     df_times = pd.concat([dat_dict[week]['event_times'] for week in weeks])
     idx = np.unique(df_times.index.values, return_index=True)[1]
     df_times_unique = df_times.iloc[idx]
@@ -29,9 +37,10 @@ def get_slope_data(dat_dict, weeks):
     etimes = {}
     for pt, count in counts.iteritems():
         if count >= 2:
+
             slope_data[pt], intercept = np.polyfit(
                 [float(i) for i in dd[pt]],
-                [dat_dict[float(i)]['x'].loc[pt + '-' + i].values for i in dd[pt]],1)
+                [x_dat[float(i)].loc[pt + '-' + i].values for i in dd[pt]], 1)
             for week in weeks:
                 try:
                     y[pt] = dat_dict[week]['y'][pt]
@@ -39,7 +48,7 @@ def get_slope_data(dat_dict, weeks):
                     break
                 except:
                     continue
-    return pd.DataFrame(slope_data, index = dat_dict[1]['x'].columns.values).T, pd.Series(y), pd.Series(etimes)
+    return pd.DataFrame(slope_data, index=features).T, pd.Series(y), pd.Series(etimes)
 
 def sigmoid(x):
     return 1/(1 + np.exp(-x))
@@ -323,46 +332,52 @@ def filter_by_pt(dataset, targets=None, perc = .15, pt_thresh = 1, meas_thresh =
         mets_all_keep = np.where(met_counts >= np.round(perc * mets.shape[0]))[0]
     return dataset.iloc[:,np.unique(mets_all_keep)]
 
-def asv_to_name(asv, tax_dat = ['inputs/dada2-taxonomy-rdp.csv','inputs/dada2-taxonomy-silva.csv']):
-    tdat = [pd.read_csv(t) for t in tax_dat]
-    met_class = []
-
+def asv_to_name(asv, tax_dat = ['inputs/tax_dat.csv', 'inputs/dada2-taxonomy-silva.csv', 'inputs/dada2-taxonomy-rdp.csv']):
     if len(asv)>100:
-        if 'tax_dat.csv' in tax_dat:
-            td_out = tdat[0]
-            met_class = td_out['genus_species'].loc[tdat.index.values == asv]
-        else:
-            classification = []
-            for i,td in enumerate(tdat):
-                td_out = np.array([str(x) for x in td[asv]])[-2:]
-                td_out = [t for t in td_out if t != 'nan']
-                classification.append(' '.join(td_out))
+        classification = []
+        for i,td in enumerate(tax_dat):
+            if 'tax_dat' in td:
+                td_out = pd.read_csv(td, index_col=[0])
+                try:
+                    met_class = td_out['genus_species'].loc[asv]
+                    break
+                except:
+                    continue
+            tdat = pd.read_csv(td, index_col=[0])
+            td_out = np.array([str(x) for x in tdat[asv]])[-2:]
+            td_out = [t for t in td_out if t != 'nan']
+            classification.append(' '.join(td_out))
 
-
+        if len(classification) > 0:
             cl = np.unique(classification)
             if len(cl) > 1:
                 cl = cl[0] + ' ; ' + cl[1]
                 met_class = cl
             else:
                 met_class = cl[0]
+    else:
+        met_class = asv
     return met_class
 
-def return_taxa_names(sequences, tax_dat = ['inputs/tax_dat.csv']):
-    tdat = [pd.read_csv(t) for t in tax_dat]
+def return_taxa_names(sequences, tax_dat = ['inputs/tax_dat.csv', 'inputs/dada2-taxonomy-silva.csv', 'inputs/dada2-taxonomy-rdp.csv']):
     met_class = []
     for metab in sequences:
         if len(metab)>100:
-            if 'tax_dat.csv' in tax_dat:
-                td_out = tdat[0]
-                met_class.append(td_out['genus_species'].loc[tdat.index.values == metab])
-            else:
-                classification = []
-                for i,td in enumerate(tdat):
-                    td_out = np.array([str(x) for x in td[metab]])[-2:]
-                    td_out = [t for t in td_out if t != 'nan']
-                    classification.append(' '.join(td_out))
+            classification = []
+            for i,td in enumerate(tax_dat):
+                if 'tax_dat' in td:
+                    td_out = pd.read_csv(td, index_col=[0])
+                    try:
+                        met_class.append(td_out['genus_species'].loc[metab])
+                        break
+                    except:
+                        continue
+                tdat = pd.read_csv(td, index_col=[0])
+                td_out = np.array([str(x) for x in tdat[metab]])[-2:]
+                td_out = [t for t in td_out if t != 'nan']
+                classification.append(' '.join(td_out))
 
-
+            if len(classification)>0:
                 cl = np.unique(classification)
                 if len(cl) > 1:
                     cl = cl[0] + ' ; ' + cl[1]

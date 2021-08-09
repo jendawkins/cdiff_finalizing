@@ -8,7 +8,7 @@ class dataLoader():
             filename_toxin = 'Toxin B and C. difficile Isolation Results.xlsx',
                  filename_CSgps = '20200120_HumanCarbonSourceMap.xlsx',
                  filename_scfa = 'PrecisionSCFAResultsHumanStool.xlsx',
-                 pt_perc = 0.25, meas_thresh = 10, var_perc = 5, pt_tmpts = 2):
+                 pt_perc = 0.25, meas_thresh = 10, var_perc = 5, pt_tmpts = 1):
         
         self.path = path
         self.filename_cdiff = filename_cdiff
@@ -73,13 +73,15 @@ class dataLoader():
             temp_filt = filter_by_pt(value['data'], targets=None, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
                                      meas_thresh=self.meas_thresh)
             for week in [0,1,1.5,2,2.5,3,3.5,4]:
-                self.week[key][week] = self.get_week_x_step_ahead(value['filtered_data'], value['targets_by_pt'], week = week)
+                temp_week = self.get_week_x_step_ahead(value['data'], value['targets_by_pt'], week = week)
+                self.week[key][week] = {'x': self.filter_transform(temp_week['x'], targets_by_pt = None, filter = filter),
+                                        'y': temp_week['y'], 'event_times': temp_week['event_times']}
                 # self.week_stand[key][week] = self.week[key][week].copy()
-                self.week[key][week]['x'] = standardize(self.week[key][week]['x'])
-                self.week_filt[key][week] = self.get_week_x_step_ahead(temp_filt, value['targets_by_pt'],
-                                                                  week=week)
-                self.week_raw[key][week] = self.get_week_x_step_ahead(value['data'], value['targets_by_pt'],
-                                                                      week=week)
+                # self.week[key][week]['x'] = standardize(self.week[key][week]['x'])
+                temp_filt = filter_by_pt(temp_week['x'], targets=None, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
+                                         meas_thresh=self.meas_thresh)
+                self.week_filt[key][week] = {'x': temp_filt, 'y': temp_week['y'], 'event_times': temp_week['event_times']}
+                self.week_raw[key][week] = temp_week
 
         for ck in self.combos:
             self.week[ck] = {}
@@ -205,6 +207,7 @@ class dataLoader():
         self.toxin_data = self.toxin_data.replace(
             'Not done  - no sample available', 0).fillna(0)
         self.toxin_data = self.toxin_data.iloc[:,:4]
+
 
     def filter_transform(self, data, targets_by_pt, key = 'metabs', filter = True):
         if filter:

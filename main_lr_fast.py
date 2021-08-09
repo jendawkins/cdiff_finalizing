@@ -223,7 +223,7 @@ if __name__ == "__main__":
             {'metabs': 0, '16s': 10, 'scfa': 0}, var_perc={'metabs': 25, '16s': 5, 'scfa': 0})
 
     if isinstance(args.week, list):
-        x, y, event_times = get_slope_data(dl.week[args.i], args.week)
+        x, y, event_times = get_slope_data(dl, args.i, args.week)
     else:
         data = dl.week[args.i][args.week]
         x, y, event_times = data['x'], data['y'], data['event_times']

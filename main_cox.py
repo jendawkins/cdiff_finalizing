@@ -23,8 +23,12 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = N
     x_train, x_test = x_train0.iloc[train_index, :], x_train0.iloc[test_index, :]
 
     lamb_dict = {}
-    for lamb in feature_grid:
+    lamb_dict['auc'] = {}
+    lamb_dict['ci'] = {}
+    for il, lamb in enumerate(feature_grid):
         ix_inner2 = leave_one_out_cv(x_train, x_train['outcome'], ddtype='all_data')
+        ix_rand_samp = np.random.choice(np.arange(len(ix_inner2)), 10, replace=False)
+        ix_inner2_samp = np.array(ix_inner2, dtype='object')[ix_rand_samp]
         # ix_inner2_rand_samp = np.random.choice(ix_inner2, 10, replace = False)
         counter = 0
         start = time.time()
@@ -36,7 +40,7 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = N
         true = []
 
         model = CoxPHFitter(penalizer=lamb, l1_ratio=1.)
-        for ic_in2, ix_in2 in enumerate(ix_inner2):
+        for ic_in2, ix_in2 in enumerate(ix_inner2_samp):
             start_inner = time.time()
 
             train_ix, test_ix = ix_in2
@@ -47,7 +51,7 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = N
             x_tr2.insert(x_tr2.shape[1], 'weights', samp_weights)
             try:
                 model.fit(x_tr2, duration_col='week', event_col='outcome',
-                          weights_col='weights', robust=False, show_progress = False)
+                          weights_col='weights', robust=True, show_progress = False)
             except:
                 counter += 1
                 continue
@@ -59,29 +63,26 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = N
             event_times.append(x_ts2['week'])
             event_outcomes.append(x_ts2['outcome'])
             end_inner = time.time()
-            print('Inner ix ' + str(ic_in2) + ' complete in ' + str(end_inner - start_inner))
+            # print('Inner ix ' + str(ic_in2) + ' complete in ' + str(end_inner - start_inner))
 
-        if metric == 'CI':
-            try:
-                score = concordance_index(pd.concat(event_times), pd.concat(hazards), pd.concat(event_outcomes))
-                lamb_dict[lamb] = score
-                end_t = time.time()
-                print(str(lamb) + ' complete')
-                print(start - end_t)
-            except:
-                print('No score available')
-                continue
-        elif metric == 'auc':
-            try:
-                score = sklearn.metrics.roc_auc_score(true, probs_in)
-                lamb_dict[lamb] = score
-                end_t = time.time()
-                print(str(lamb) + ' complete')
-                print(start - end_t)
-            except:
-                continue
+        # if metric == 'CI':
+        try:
+            score = concordance_index(pd.concat(event_times), pd.concat(hazards), pd.concat(event_outcomes))
+            lamb_dict['ci'][lamb] = score
+            end_t = time.time()
+            print(str(il) + ' complete')
+            print((end_t - start)/60)
+        except:
+            print('No score available')
+            continue
+        # elif metric == 'auc':
+        try:
+            score = sklearn.metrics.roc_auc_score(true, probs_in)
+            lamb_dict['auc'][lamb] = score
+        except:
+            continue
 
-    lambdas, aucs_in = list(zip(*lamb_dict.items()))
+    lambdas, aucs_in = list(zip(*lamb_dict[metric].items()))
     ix_max = np.argmax(aucs_in)
     best_lamb = lambdas[ix_max]
 
@@ -92,7 +93,7 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = N
     x_train.insert(x_train.shape[1], 'weights', samp_weights)
     x_train['weights'] = samp_weights
     try:
-        model_out.fit(x_train, duration_col='week', event_col='outcome', weights_col='weights', robust=False)
+        model_out.fit(x_train, duration_col='week', event_col='outcome', weights_col='weights', robust=True)
     except:
         return {}
     pred_f = model_out.predict_survival_function(x_test.iloc[0, :])
@@ -127,6 +128,7 @@ def train_cox(x_train0, ix_in, y_per_pt, y_int, metric = 'auc', feature_grid = N
     final_dict['survival_function'] = surv_func
     final_dict['prob_true'] = (probs_sm, y_per_pt[pt])
     final_dict['times_hazards_outcomes'] = (x_test['week'], hazard_out, x_test['outcome'])
+    final_dict['lambdas'] = lamb_dict
     # final_dict['auc'] = sklearn.metrics.roc_auc_score(final_df[0], final_df[1])
     return final_dict
 
@@ -146,8 +148,9 @@ if __name__ == "__main__":
         args.ix = [0, 0]
         args.o = 'test_cox_preds'
         args.i = 'metabs'
-        args.metric = 'auc'
-        feature_grid = np.logspace(7, 20, 14)
+        args.metric = 'ci'
+        fspace = (2,20)
+        feature_grid = np.logspace(fspace[0], fspace[1], 14)
 
     # if args.i == '16s':
     #     dl = dataLoader(pt_perc=.05, meas_thresh=10, var_perc=5, pt_tmpts=1)
@@ -187,13 +190,13 @@ if __name__ == "__main__":
     final_res_dict = train_cox(x_train0, ix_inner[args.ix[1]], y_per_pt, y_int, metric = args.metric, feature_grid = feature_grid)
     final_res_dict['data'] = x
 
-    with open(path_out + 'ix_' + str(args.ix[0]) +'ix_' + str(args.ix[1])+ '.pkl', 'wb') as f:
+    with open(path_out + 'ix_' + str(args.ix[0]) +'ix_' + str(args.ix[1])+ '_' +str(fspace[0]) + '_' + str(fspace[1]) + '.pkl', 'wb') as f:
         pickle.dump(final_res_dict, f)
 
     end = time.time()
     passed = np.round((end - start) / 60, 3)
     f2 = open(args.o + '/' + args.i + ".txt", "a")
-    f2.write('index ' + str(args.ix) + ' in ' + str(passed) + ' minutes' + '\n')
+    f2.write('index ' + str(args.ix) + ', l1 tried ' +  str(fspace) + ' in ' + str(passed) + ' minutes' + '\n')
     f2.close()
 
 # Get coefficients from nested CV
