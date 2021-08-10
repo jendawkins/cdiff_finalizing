@@ -108,7 +108,7 @@ for model in args.models:
             if use_folds == 1:
                 f_folder = 'FinalFolds'
             else:
-                f_folder = 'FinalRuns_LR_Aug5_MA_filt2'
+                f_folder = 'FinalRuns_Aug10'
             if not os.path.isdir(f_folder):
                 os.mkdir(f_folder)
 
@@ -128,7 +128,7 @@ for model in args.models:
                     f.write(my_str.format(0, in_dat, out_path, 'coef', week, use_folds, model))
                     f.close()
                     os.system('bsub < {}'.format(fname))
-                    time.sleep(0.5)
+                    time.sleep(0.01)
                 for ii in np.arange(48):
                     if os.path.exists(path_out + 'auc' + '_ix_' + str(ii) + '.pkl'):
                         continue
@@ -137,7 +137,7 @@ for model in args.models:
                         f.write(my_str.format(ii, in_dat, out_path, 'auc', week, use_folds, model))
                         f.close()
                         os.system('bsub < {}'.format(fname))
-                        time.sleep(0.5)
+                        time.sleep(0.001)
 
 
 

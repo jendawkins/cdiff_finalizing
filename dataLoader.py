@@ -102,7 +102,8 @@ class dataLoader():
         for week in [0,1,1.5,2,2.5,3,3.5,4]:
             self.week['metabs_toxin'][week] = {}
             df = self.week['metabs'][week]['x'].copy()
-            self.week['metabs_toxin'][week]['x'] = pd.concat([df, self.toxin_data.loc[df.index.values,:]], axis = 1)
+            toxin_dat = standardize(self.toxin_data.loc[df.index.values,:])
+            self.week['metabs_toxin'][week]['x'] = pd.concat([df, toxin_dat], axis = 1)
             self.week['metabs_toxin'][week]['y'] = self.week['metabs'][week]['y']
             self.week['metabs_toxin'][week]['event_times'] = self.week['metabs'][week]['event_times']
 
