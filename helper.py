@@ -17,8 +17,9 @@ def get_slope_data(dl, key, weeks, combine_features = 'intersection'):
         features = list(set.intersection(*[set(dat_dict[week]['x'].columns.values) for week in weeks]))
     else:
         features = np.unique(np.concatenate([dat_dict[week]['x'].columns.values for week in weeks]))
-    x_dat = {week: dl.filter_transform(dl.week_raw[key][week]['x'][features],
-                                   targets_by_pt=None, key=key, filter=False) for week in weeks}
+    # x_dat = {week: dl.filter_transform(dl.week_raw[key][week]['x'][features],
+                                   # targets_by_pt=None, key=key, filter=False) for week in weeks}
+    x_dat = {week: dat_dict[week]['x'][features].astype(float) for week in weeks}
     df_times = pd.concat([dat_dict[week]['event_times'] for week in weeks])
     idx = np.unique(df_times.index.values, return_index=True)[1]
     df_times_unique = df_times.iloc[idx]
@@ -40,7 +41,7 @@ def get_slope_data(dl, key, weeks, combine_features = 'intersection'):
 
             slope_data[pt], intercept = np.polyfit(
                 [float(i) for i in dd[pt]],
-                [x_dat[float(i)].loc[pt + '-' + i].values for i in dd[pt]], 1)
+                np.vstack([np.array(x_dat[float(i)].loc[pt + '-' + i].values).astype(float) for i in dd[pt]]), 1).tolist()
             for week in weeks:
                 try:
                     y[pt] = dat_dict[week]['y'][pt]
@@ -332,18 +333,19 @@ def filter_by_pt(dataset, targets=None, perc = .15, pt_thresh = 1, meas_thresh =
         mets_all_keep = np.where(met_counts >= np.round(perc * mets.shape[0]))[0]
     return dataset.iloc[:,np.unique(mets_all_keep)]
 
-def asv_to_name(asv, tax_dat = ['inputs/tax_dat.csv', 'inputs/dada2-taxonomy-silva.csv', 'inputs/dada2-taxonomy-rdp.csv']):
+def asv_to_name(asv, tax_dat = ['inputs/tax_dat.csv', 'inputs/dada2-taxonomy-silva.csv',
+                                'inputs/dada2-taxonomy-rdp.csv']):
     if len(asv)>100:
         classification = []
         for i,td in enumerate(tax_dat):
             if 'tax_dat' in td:
                 td_out = pd.read_csv(td, index_col=[0])
                 try:
-                    met_class = td_out['genus_species'].loc[asv]
+                    met_class = td_out['genus_species'].loc[asv] + ', ' + td_out['OTU'].loc[asv]
                     break
                 except:
                     continue
-            tdat = pd.read_csv(td, index_col=[0])
+            tdat = pd.read_csv(td)
             td_out = np.array([str(x) for x in tdat[asv]])[-2:]
             td_out = [t for t in td_out if t != 'nan']
             classification.append(' '.join(td_out))
@@ -368,11 +370,12 @@ def return_taxa_names(sequences, tax_dat = ['inputs/tax_dat.csv', 'inputs/dada2-
                 if 'tax_dat' in td:
                     td_out = pd.read_csv(td, index_col=[0])
                     try:
-                        met_class.append(td_out['genus_species'].loc[metab])
+                        met_class.append(td_out['genus_species'].loc[metab] + ', ' +
+                                         td_out['OTU'].loc[metab])
                         break
                     except:
                         continue
-                tdat = pd.read_csv(td, index_col=[0])
+                tdat = pd.read_csv(td)
                 td_out = np.array([str(x) for x in tdat[metab]])[-2:]
                 td_out = [t for t in td_out if t != 'nan']
                 classification.append(' '.join(td_out))

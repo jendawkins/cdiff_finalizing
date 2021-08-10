@@ -107,6 +107,7 @@ class dataLoader():
             self.week['metabs_toxin'][week]['y'] = self.week['metabs'][week]['y']
             self.week['metabs_toxin'][week]['event_times'] = self.week['metabs'][week]['event_times']
 
+
     def load_cdiff_data(self):
         xl = pd.ExcelFile(self.path + '/' + self.filename_cdiff)
         self.cdiff_raw = xl.parse('OrigScale', header = None, index_col = None)
