@@ -140,7 +140,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
 
         lambdas, aucs_in = list(zip(*scores.items()))
         ix_max = np.argmax(aucs_in)
-        best_lamb = lambdas[ix_max]
+        best_lamb = alphas[ix_max]
 
         lambda_dict[ic_in] = {'best_lambda': best_lamb, 'scores': scores, 'event_outcomes':event_outcomes, 'times':event_times,
                        'hazards':hazards, 'lambdas_tested': alphas}
