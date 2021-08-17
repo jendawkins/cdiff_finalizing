@@ -29,9 +29,9 @@ class dataLoader():
         self.load_SCFA_data()
         self.load_toxin_cdiff_data()
         self.keys = {'metabs':self.cdiff_data_dict,'16s':self.data16s_dict,'bile_acids':self.ba_data,
-                     'scfa': self.data_scfa_dict}
+                     'scfa': self.data_scfa_dict, 'toxin':self.toxin_dict}
 
-        self.combos = ['metabs_16s','metabs_scfa']
+        self.combos = ['metabs_16s','metabs_scfa','metabs_toxin']
         # self.week_one = {}
         # for key, value in keys.items():
         #     temp = self.get_week_x(value['data'],value['targets_by_pt'], week = 1)
@@ -105,14 +105,14 @@ class dataLoader():
                 self.week[ck][week]['x'] = pd.DataFrame(joint, index = ix_both, columns = cols)
                 self.week[ck][week]['y'] = self.week[ck.split('_')[0]][week]['y'][ix_pt]
                 self.week[ck][week]['event_times'] = self.week[ck.split('_')[0]][week]['event_times'][ix_pt]
-        self.week['metabs_toxin']={}
-        for week in [0,1,1.5,2,2.5,3,3.5,4]:
-            self.week['metabs_toxin'][week] = {}
-            df = self.week['metabs'][week]['x'].copy()
-            toxin_dat = standardize(self.toxin_data.loc[df.index.values,:])
-            self.week['metabs_toxin'][week]['x'] = pd.concat([df, toxin_dat], axis = 1)
-            self.week['metabs_toxin'][week]['y'] = self.week['metabs'][week]['y']
-            self.week['metabs_toxin'][week]['event_times'] = self.week['metabs'][week]['event_times']
+        # self.week['metabs_toxin']={}
+        # for week in [0,1,1.5,2,2.5,3,3.5,4]:
+        #     self.week['metabs_toxin'][week] = {}
+        #     df = self.week['metabs'][week]['x'].copy()
+        #     toxin_dat = standardize(self.toxin_data.loc[df.index.values,:])
+        #     self.week['metabs_toxin'][week]['x'] = pd.concat([df, toxin_dat], axis = 1)
+        #     self.week['metabs_toxin'][week]['y'] = self.week['metabs'][week]['y']
+        #     self.week['metabs_toxin'][week]['event_times'] = self.week['metabs'][week]['event_times']
 
 
     def load_cdiff_data(self):
@@ -217,6 +217,11 @@ class dataLoader():
         self.toxin_data = self.toxin_data.replace(
             'Not done  - no sample available', 0).fillna(0)
         self.toxin_data = self.toxin_data.iloc[:,:4]
+        targets = {key: val for key, val in self.targets_dict.items() if key in self.toxin_data.index.values}
+        pts = np.unique([x.split('-')[0] for x in self.toxin_data.index.values])
+        targets_by_pt = {key: val for key, val in self.targets_by_pt.items() if key.split('-')[0] in pts}
+        self.toxin_dict = {'data': self.toxin_data, 'targets': pd.Series(targets),
+                               'targets_by_pt': pd.Series(targets_by_pt)}
 
 
     def filter_transform(self, data, targets_by_pt, key = 'metabs', filter = True):
@@ -306,5 +311,5 @@ class dataLoader():
         return {'x':data_all,'y':targets_out}
 
 if __name__ == "__main__":
-    dl = dataLoader(pt_perc={'metabs': .25, '16s': .1, 'scfa': 0}, meas_thresh=
-    {'metabs': 0, '16s': 10, 'scfa': 0}, var_perc={'metabs': 15, '16s': 5, 'scfa': 0})
+    dl = dataLoader(pt_perc={'metabs': .25, '16s': .1, 'scfa': 0, 'toxin':0}, meas_thresh=
+    {'metabs': 0, '16s': 10, 'scfa': 0, 'toxin':0}, var_perc={'metabs': 15, '16s': 5, 'scfa': 0, 'toxin':0})
