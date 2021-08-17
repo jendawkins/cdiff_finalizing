@@ -11,7 +11,7 @@ import scipy.stats as st
 from collections import defaultdict
 
 
-def get_slope_data(dl, key, weeks, combine_features = 'intersection'):
+def get_slope_data(dl, key, weeks, combine_features = 'union'):
     dat_dict = dl.week[key]
     if combine_features == 'intersection':
         features = list(set.intersection(*[set(dat_dict[week]['x'].columns.values) for week in weeks]))
@@ -294,9 +294,12 @@ def get_epsilon(data):
     epsilon = 0.1 * np.min(vals)
     return epsilon
 
-def filter_by_pt(dataset, targets=None, perc = .15, pt_thresh = 1, meas_thresh = 10):
+def filter_by_pt(dataset, targets=None, perc = .15, pt_thresh = 1, meas_thresh = 10, weeks = [0,1,2]):
+    df_drop = [x for x in dataset.index.values if not x.split('-')[1].replace('.','').isnumeric()]
+    dataset = dataset.drop(df_drop)
     pts = [x.split('-')[0] for x in dataset.index.values]
-    tmpts = [x.split('-')[1] for x in dataset.index.values]
+    # tmpts = [float(x.split('-')[1]) for x in dataset.index.values if x.replace('.','').isnumeric()]
+    ixs = dataset.index.values
 
     # mets is dataset with ones where data is present, zeros where it is not
     mets = np.zeros(dataset.shape)
@@ -305,12 +308,23 @@ def filter_by_pt(dataset, targets=None, perc = .15, pt_thresh = 1, meas_thresh =
     except:
         print('debug')
 
+    if weeks is not None:
+        ix_add = [i for i in range(len(ixs)) if float(ixs[i].split('-')[1]) in weeks]
+        oh = np.zeros(len(pts))
+        oh[np.array(ix_add)] = 1
+        index = pd.MultiIndex.from_tuples(list(zip(*[pts, oh.tolist()])), names = ['pts', 'add'])
+        df = pd.DataFrame(mets, index = index)
+        df2 = df.xs(1, level = 'add')
+        df2 = df2.groupby(level=0).sum()
+        mets = np.zeros(df2.shape)
+        mets[df2>0] = 1
+
     # if measurement of a microbe/metabolite only exists in less than pt_thresh timepoints, set that measurement to zero
     if pt_thresh > 1:
         for pt in pts:
             ixs = np.where(np.array(pts) == pt)[0]
             mets_pt = mets[ixs,:]
-            tmpts_pt = np.array(tmpts)[ixs]
+            # tmpts_pt = np.array(tmpts)[ixs]
             mets_counts = np.sum(mets_pt, 0).astype('int')
             met_rm_ixs = np.where(mets_counts < pt_thresh)[0]
             for ix in ixs:

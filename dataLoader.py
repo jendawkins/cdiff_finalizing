@@ -66,6 +66,11 @@ class dataLoader():
             value['data'] = value['data'].fillna(0)
             value['targets'] = value['targets'].replace('Recur', 'Recurrer').replace('Cleared','Non-recurrer')
             value['targets_by_pt'] = value['targets_by_pt'].replace('Recur', 'Recurrer').replace('Cleared', 'Non-recurrer')
+            # if key == 'scfa':
+            #     filter = False
+            #     value['data'] = value['data'].drop('Heptanoate', axis = 1)
+            # else:
+            filter = True
             value['filtered_data'] = self.filter_transform(value['data'], targets_by_pt = None, key = key, filter = filter)
             # temp = self.get_week_x(value['filtered_data'], value['targets_by_pt'], week=1)
             #
@@ -73,15 +78,18 @@ class dataLoader():
             temp_filt = filter_by_pt(value['data'], targets=None, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
                                      meas_thresh=self.meas_thresh)
             for week in [0,1,1.5,2,2.5,3,3.5,4]:
-                temp_week = self.get_week_x_step_ahead(value['data'], value['targets_by_pt'], week = week)
-                self.week[key][week] = {'x': self.filter_transform(temp_week['x'], targets_by_pt = None, filter = filter),
-                                        'y': temp_week['y'], 'event_times': temp_week['event_times']}
+                self.week[key][week] = self.get_week_x_step_ahead(value['filtered_data'], value['targets_by_pt'], week = week)
+                self.week_raw[key][week] = self.get_week_x_step_ahead(value['data'], value['targets_by_pt'], week=week)
+                self.week_filt[key][week] = self.get_week_x_step_ahead(temp_filt, value['targets_by_pt'], week=week)
+                # temp_week = self.get_week_x_step_ahead(value['data'], value['targets_by_pt'], week = week)
+                # self.week[key][week] = {'x': self.filter_transform(temp_week['x'], targets_by_pt = None, filter = filter),
+                #                         'y': temp_week['y'], 'event_times': temp_week['event_times']}
                 # self.week_stand[key][week] = self.week[key][week].copy()
                 # self.week[key][week]['x'] = standardize(self.week[key][week]['x'])
-                temp_filt = filter_by_pt(temp_week['x'], targets=None, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
-                                         meas_thresh=self.meas_thresh)
-                self.week_filt[key][week] = {'x': temp_filt, 'y': temp_week['y'], 'event_times': temp_week['event_times']}
-                self.week_raw[key][week] = temp_week
+                # temp_filt = filter_by_pt(temp_week['x'], targets=None, perc=self.pt_perc, pt_thresh=self.pt_tmpts,
+                #                          meas_thresh=self.meas_thresh)
+                # self.week_filt[key][week] = {'x': temp_filt, 'y': temp_week['y'], 'event_times': temp_week['event_times']}
+                # self.week_raw[key][week] = temp_week
 
         for ck in self.combos:
             self.week[ck] = {}
@@ -92,7 +100,6 @@ class dataLoader():
                 ix_pt = [ix.split('-')[0] for ix in ix_both]
                 joint = np.hstack((self.week[ck.split('_')[0]][week]['x'].loc[ix_both,:],
                                    self.week[ck.split('_')[1]][week]['x'].loc[ix_both,:]))
-                # joint = standardize(joint, override = True)
                 cols = list(self.week[ck.split('_')[0]][week]['x'].columns.values)
                 cols.extend(self.week[ck.split('_')[1]][week]['x'].columns.values)
                 self.week[ck][week]['x'] = pd.DataFrame(joint, index = ix_both, columns = cols)
@@ -122,7 +129,7 @@ class dataLoader():
         self.col_mat_mets = feature_header
         self.col_mat_mets.columns = feat_names
         self.col_mat_mets.index = np.arange(self.col_mat_mets.shape[0])
-
+        #
         self.col_mat_pts = pt_header.T
         self.col_mat_pts.columns = pt_names
         self.col_mat_pts.index = np.arange(self.col_mat_pts.shape[0])
@@ -136,6 +143,7 @@ class dataLoader():
         self.cdiff_data_dict = {'sampleMetadata':self.col_mat_pts, 'featureMetadata':self.col_mat_mets,
                                 'data':self.cdiff_dat, 'targets':pd.Series(self.targets_dict),
                                 'targets_by_pt': pd.Series(self.targets_by_pt)}
+        self.col_mat_mets = self.col_mat_mets.set_index('BIOCHEMICAL')
 
     def load_16s_data(self):
         self.file16s = pd.ExcelFile(self.path + '/' + self.filename_16s)
