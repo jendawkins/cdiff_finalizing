@@ -250,36 +250,45 @@ def dmatrix(data, metric='e'):
     return vec
 
 
-def get_vars(data, labels=None):
-    if labels:
-        cleared = data[np.array(labels) == 'Non-recurrer']
-        recur = data[np.array(labels) == 'Recur']
-        within_class_vars = [np.var(cleared, 0), np.var(recur, 0)]
-        class_means = [np.mean(cleared, 0), np.mean(cleared, 0)]
+# def get_vars(data, labels=None, weeks = [0,1,2]):
+#     if labels:
+#         cleared = data[np.array(labels) == 'Non-recurrer']
+#         recur = data[np.array(labels) == 'Recur']
+#         within_class_vars = [np.var(cleared, 0), np.var(recur, 0)]
+#         class_means = [np.mean(cleared, 0), np.mean(cleared, 0)]
+#
+#         total_mean = np.mean(data, 0)
+#         between_class_vars = 0
+#         for i in range(2):
+#             between_class_vars += (class_means[i] - total_mean)**2
+#
+#     else:
+#         within_class_vars = None
+#         between_class_vars = None
+#     if weeks:
+#         tmpt = [float(x.split('-')[1]) for x in data.index.values]
+#
+#     total_vars = np.std(data, 0)/np.abs(np.mean(data,0))
+#     vardict = {'within':within_class_vars,'between':between_class_vars,'total':total_vars}
+#     return vardict
 
-        total_mean = np.mean(data, 0)
-        between_class_vars = 0
-        for i in range(2):
-            between_class_vars += (class_means[i] - total_mean)**2
-    
+def filter_vars(data, perc=5, weeks = [0,1,2]):
+
+    if weeks:
+        tmpt = [float(x.split('-')[1]) for x in data.index.values]
+        rm2 = []
+        for week in weeks:
+            t_ix = np.where(np.array(tmpt)==week)[0]
+            dat_in = data.iloc[t_ix,:]
+            variances = np.std(dat_in, 0) / np.abs(np.mean(dat_in, 0))
+            rm = np.where(variances > np.percentile(variances, perc))[0].tolist()
+            rm2.extend(rm)
+        rm2 = np.unique(rm2)
     else:
-        within_class_vars = None
-        between_class_vars = None
+        variances = np.std(data, 0) / np.abs(np.mean(data, 0))
+        rm2 = np.where(variances > np.percentile(variances, perc))[0].tolist()
 
-    total_vars = np.std(data, 0)/np.abs(np.mean(data,0))
-    vardict = {'within':within_class_vars,'between':between_class_vars,'total':total_vars}
-    return vardict
-
-def filter_vars(data, labels=None, perc=5, var_type = 'total'):
-    if labels == None:
-        assert(var_type == 'total')
-    vardict = get_vars(data, labels)
-    variances = vardict[var_type]
-    variances = variances.replace(np.nan,0)
-    
-    rm2 = set(np.where(variances > np.percentile(variances, perc))[0])
-
-    temp = data.iloc[:,list(rm2)]
+    temp = data.iloc[:,rm2]
     # import pdb; pdb.set_trace()
     # if len(np.where(np.sum(temp,0)==0)[0]) > 0:
     #     import pdb; pdb.set_trace()
