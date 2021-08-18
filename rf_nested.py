@@ -125,8 +125,8 @@ if __name__ == "__main__":
         if len(args.week)==1:
             args.week = args.week[0]
 
-    dl = dataLoader(pt_perc={'metabs': .25, '16s': .1, 'scfa': 0}, meas_thresh=
-            {'metabs': 0, '16s': 10, 'scfa': 0}, var_perc={'metabs': 15, '16s': 5, 'scfa': 0})
+    dl = dataLoader(pt_perc={'metabs': .25, '16s': .1, 'scfa': 0, 'toxin':0}, meas_thresh=
+            {'metabs': 0, '16s': 10, 'scfa': 0, 'toxin':0}, var_perc={'metabs': 15, '16s': 5, 'scfa': 0, 'toxin':0})
 
     if isinstance(args.week, list):
         x, y, event_times = get_slope_data(dl, args.i, args.week)
