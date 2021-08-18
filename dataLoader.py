@@ -242,12 +242,15 @@ class dataLoader():
             temp = np.divide(data_prop.T, geom_means).T
             epsilon = get_epsilon(temp)
             transformed = np.log(temp + epsilon)
-        stand = standardize(transformed, override=True)
-        if filter:
-            filt2 = filter_vars(stand, perc=self.var_perc)
+        if filter and 'toxin' not in key:
+            filt2 = filter_vars(transformed, perc=self.var_perc)
         else:
-            filt2 = stand
+            filt2 = transformed
+        stand = standardize(filt2, override=True)
         # print(key + ', 2nd filter: ' + str(filt2.shape))
+        # print(key)
+        # print(filt1.shape)
+        # print(filt2.shape)
         return filt2
 
 
