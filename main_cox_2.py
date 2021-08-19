@@ -24,6 +24,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
         print('none')
     else:
         print(num_folds)
+    np.random.seed(5)
     # if feature_grid is None:
     #     feature_grid = np.logspace(7, 20, 14)
     hazards = []
@@ -138,8 +139,15 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
                 e_outcomes_dict[i][ic_in2] = x_ts2['outcome']
 
                 if len(test_ix)>=2:
-                    ci = concordance_index_censored(e_outcomes_dict[i][ic_in2].astype(bool), e_times_dict[i][ic_in2],
-                                                                       hazards_dict[i][ic_in2])[0]
+                    try:
+                        ci = concordance_index_censored(e_outcomes_dict[i][ic_in2].astype(bool), e_times_dict[i][ic_in2],
+                                                                           hazards_dict[i][ic_in2])[0]
+                    except:
+                        print('debug')
+                        print(x_ts2['outcome'])
+                        print(x_ts2['week'])
+                        print('')
+                        continue
 
                     if not np.isnan(ci):
                         score_dict[i][ic_in2] = ci
