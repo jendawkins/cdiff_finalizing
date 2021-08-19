@@ -22,8 +22,11 @@ def run_rf(x,y,random_state = 0, n_estimators=[50,100], max_depth = None,
         train_index, test_index = ix_in
         x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
+        if (x_train<0).any().any():
+            x_train, x_test = filter_by_train_set(x_train, x_test, meas_key, key = key, log_transform = False)
+        else:
+            x_train, x_test = filter_by_train_set(x_train, x_test, meas_key, key=key, log_transform=True)
 
-        x_train, x_test = filter_by_train_set(x_train, x_test, meas_key, key=key)
         ix_inner2 = leave_one_out_cv(x_train, y_train)
 
         model_dict = {}
@@ -138,7 +141,8 @@ if __name__ == "__main__":
                 'var_perc':{'metabs':50, '16s':5,'scfa':0,'toxin':0},
                 'pt_tmpts':{'metabs':1, '16s':1,'scfa':1,'toxin':1}}
     if isinstance(args.week, list):
-        x, y, event_times = get_slope_data(dl, args.i, args.week)
+        dat_dict = dl.week_raw[args.i]
+        x, y, event_times = get_slope_data(dat_dict, args.week, log_transform = True)
     else:
         data = dl.week_raw[args.i][args.week]
         x, y, event_times = data['x'], data['y'], data['event_times']

@@ -38,8 +38,15 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
         x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
         week = x_train['week']
         outcome = x_train['outcome']
-        x_train_, x_test_ = filter_by_train_set(x_train.drop(['week','outcome'], axis = 1),
-                                              x_test.drop(['week','outcome'], axis = 1), meas_key, key=key)
+        if (x_train<0).any().any():
+            x_train_, x_test_ = filter_by_train_set(x_train.drop(['week','outcome'], axis = 1),
+                                                    x_test.drop(['week','outcome'], axis = 1),
+                                                    meas_key, key = key, log_transform = False)
+        else:
+            x_train_, x_test_ = filter_by_train_set(x_train.drop(['week','outcome'], axis = 1),
+                                                    x_test.drop(['week','outcome'], axis = 1),
+                                                    meas_key, key=key, log_transform=True)
+
         temp = x_train_.copy()
         temp['week'], temp['outcome'] = x_train['week'], x_train['outcome']
         x_train = temp.copy()
@@ -237,7 +244,7 @@ if __name__ == "__main__":
                 'pt_tmpts':{'metabs':1, '16s':1,'scfa':1,'toxin':1}}
     if isinstance(args.week, list):
         dat_dict = dl.week_raw[args.i]
-        x, y, event_times = get_slope_data(dat_dict, args.week)
+        x, y, event_times = get_slope_data(dat_dict, args.week, log_transform = True)
     else:
         data = dl.week_raw[args.i][args.week]
         x, outcomes, event_times = data['x'], data['y'], data['event_times']
