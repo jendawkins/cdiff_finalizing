@@ -79,23 +79,33 @@ def train_lr_folds(x, y, lambda_min_ratio = .001, path_len = 200, num_folds = 5,
 
 
 def train_lr(x, y, path_len = 300, path_out = '', plot_lambdas = False, meas_key = None, key = 'metabs'):
-    if x.shape[0] < x.shape[1]:
-        lambda_min_ratio = 0.0001
-    else:
-        lambda_min_ratio = 0.01
     # if feature_grid is None:
     #     feature_grid = np.logspace(7, 20, 14)
     probs = []
     outcomes = []
     model_out_dict = {}
+
+    # if isinstance(y, list):
+    #     yout, = drop_recurrers(y, times, weeks)
+    #     ix_inner = leave_one_out_cv(x, yout)
+    # else:
     ix_inner = leave_one_out_cv(x, y)
+    yout = y
     lambda_dict = {}
 
     for ic_in, ix_in in enumerate(ix_inner):
         train_index, test_index = ix_in
         x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
-        x_train, x_test = filter_by_train_set(x_train, x_test, meas_key, key = key)
+        if (x_train<0).any().any():
+            x_train, x_test = filter_by_train_set(x_train, x_test, meas_key, key = key, log_transform = False)
+        else:
+            x_train, x_test = filter_by_train_set(x_train, x_test, meas_key, key=key, log_transform=True)
+
+        if x_train.shape[0] < x_train.shape[1]:
+            lambda_min_ratio = 0.0001
+        else:
+            lambda_min_ratio = 0.01
 
         ix_inner2 = leave_one_out_cv(x_train, y_train)
         lamb_dict = {}
@@ -202,6 +212,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     mb = basic_ml()
 
+    # args.week = '1_1.5_2'
     if args.ix is None:
         args.ix = 0
     if args.o is None:
@@ -213,7 +224,7 @@ if __name__ == "__main__":
     if args.type is None:
         args.type = 'coef'
     if args.week is None:
-        args.week = 0
+        args.week = [1,1.5,2]
     else:
         args.week = [float(w) for w in args.week.split('_')]
     if args.folds is None:
@@ -232,8 +243,15 @@ if __name__ == "__main__":
                 'pt_tmpts':{'metabs':1, '16s':1,'scfa':1,'toxin':1}}
 
     if isinstance(args.week, list):
+        # x,y,event_times = [],[],[]
+        # for week in args.week:
+        #     data = dl.week_raw[args.i][week]
+        #     xtemp, ytemp, etemp = data['x'], data['y'], data['event_times']
+        #     x.append(xtemp)
+        #     y.append((ytemp, etemp))
+            # event_times.append(etemp)
         dat_dict = dl.week_raw[args.i]
-        x, y, event_times = get_slope_data(dat_dict, args.week)
+        x, y, event_times = get_slope_data(dat_dict, args.week, log_transform = True)
     else:
         data = dl.week_raw[args.i][args.week]
         x, y, event_times = data['x'], data['y'], data['event_times']
@@ -247,7 +265,11 @@ if __name__ == "__main__":
         os.mkdir(path_out)
 
     if args.type == 'auc':
-        ixs = leave_one_out_cv(x, y)
+        if isinstance(y, list):
+            yout = drop_recurrers(y, args.week)
+            ixs = leave_one_out_cv(x, yout)
+        else:
+            ixs = leave_one_out_cv(x, y)
         train_index, test_index = ixs[args.ix]
         x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train0, y_test0 = y[train_index], y[test_index]
