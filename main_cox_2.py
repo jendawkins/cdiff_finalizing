@@ -224,7 +224,7 @@ if __name__ == "__main__":
     if args.type is None:
         args.type = 'auc'
     if args.week is None:
-        args.week = 1
+        args.week = [1,1.5,2]
     else:
         args.week = [float(w) for w in args.week.split('_')]
     if args.folds is None:
@@ -244,7 +244,7 @@ if __name__ == "__main__":
                 'pt_tmpts':{'metabs':1, '16s':1,'scfa':1,'toxin':1}}
     if isinstance(args.week, list):
         dat_dict = dl.week_raw[args.i]
-        x, y, event_times = get_slope_data(dat_dict, args.week, log_transform = True)
+        x, outcomes, event_times = get_slope_data(dat_dict, args.week, log_transform = True)
     else:
         data = dl.week_raw[args.i][args.week]
         x, outcomes, event_times = data['x'], data['y'], data['event_times']
