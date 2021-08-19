@@ -10,7 +10,8 @@ from basic_data_methods import *
 import itertools
 
 def run_rf(x,y,random_state = 0, n_estimators=[50,100], max_depth = None,
-           max_features = [None,'auto'], min_samples_split = [2,9], min_samples_leaf = [1,5]):
+           max_features = [None,'auto'], min_samples_split = [2,9], min_samples_leaf = [1,5],
+           meas_key = None, key = 'metabs'):
     probs = []
     outcomes = []
     model_out_dict = {}
@@ -21,6 +22,8 @@ def run_rf(x,y,random_state = 0, n_estimators=[50,100], max_depth = None,
         train_index, test_index = ix_in
         x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
+
+        x_train, x_test = filter_by_train_set(x_train, x_test, meas_key, key=key)
         ix_inner2 = leave_one_out_cv(x_train, y_train)
 
         model_dict = {}
@@ -77,7 +80,11 @@ def run_rf(x,y,random_state = 0, n_estimators=[50,100], max_depth = None,
         probs.append(risk_scores[:,1].item())
         outcomes.append(y_test.item())
 
-        model_out_dict[ic_in] = model_out
+        coefs = model_out.feature_importances_
+        out_df = pd.DataFrame({'odds_ratio':np.zeros(x.shape[1])}, index = x.columns.values)
+        out_df.loc[x_train.columns.values] = np.expand_dims(coefs,1)
+
+        model_out_dict[ic_in] = out_df
 
     score = sklearn.metrics.roc_auc_score(outcomes, probs)
 
@@ -113,7 +120,7 @@ if __name__ == "__main__":
     if args.type is None:
         args.type = 'auc'
     if args.week is None:
-        args.week = [1,1.5,2]
+        args.week = 1
     else:
         args.week = [float(w) for w in args.week.split('_')]
     if args.folds is None:
@@ -125,13 +132,15 @@ if __name__ == "__main__":
         if len(args.week)==1:
             args.week = args.week[0]
 
-    dl = dataLoader(pt_perc={'metabs': .25, '16s': .1, 'scfa': 0, 'toxin':0}, meas_thresh=
-            {'metabs': 0, '16s': 10, 'scfa': 0, 'toxin':0}, var_perc={'metabs': 15, '16s': 5, 'scfa': 0, 'toxin':0})
-
+    dl = dataLoader(pt_perc=0, meas_thresh=0, var_perc=0)
+    meas_key = {'pt_perc':{'metabs':0.25, '16s':0.1, 'scfa': 0, 'toxin': 0},
+                'meas_thresh':{'metabs':0, '16s':10,'scfa':0,'toxin':0},
+                'var_perc':{'metabs':50, '16s':5,'scfa':0,'toxin':0},
+                'pt_tmpts':{'metabs':1, '16s':1,'scfa':1,'toxin':1}}
     if isinstance(args.week, list):
         x, y, event_times = get_slope_data(dl, args.i, args.week)
     else:
-        data = dl.week[args.i][args.week]
+        data = dl.week_raw[args.i][args.week]
         x, y, event_times = data['x'], data['y'], data['event_times']
         x.index = [xind.split('-')[0] for xind in x.index.values]
 
@@ -148,9 +157,9 @@ if __name__ == "__main__":
         x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train0, y_test0 = y[train_index], y[test_index]
 
-        final_res_dict = run_rf(x_train0, y_train0)
+        final_res_dict = run_rf(x_train0, y_train0, meas_key = meas_key, key = args.i)
     elif args.type == 'coef':
-         final_res_dict = run_rf(x,y)
+         final_res_dict = run_rf(x,y, meas_key = meas_key, key = args.i)
 
     final_res_dict['data'] = (x, y)
 
