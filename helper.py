@@ -11,15 +11,17 @@ import scipy.stats as st
 from collections import defaultdict
 
 
-def get_slope_data(dl, key, weeks, combine_features = 'union'):
-    dat_dict = dl.week[key]
-    if combine_features == 'intersection':
-        features = list(set.intersection(*[set(dat_dict[week]['x'].columns.values) for week in weeks]))
+def get_slope_data(dat_dict, weeks, combine_features = 'union'):
+    if combine_features is not None:
+        if combine_features == 'intersection':
+            features = list(set.intersection(*[set(dat_dict[week]['x'].columns.values) for week in weeks]))
+        else:
+            features = np.unique(np.concatenate([dat_dict[week]['x'].columns.values for week in weeks]))
+        x_dat = {week: dat_dict[week]['x'][features].astype(float) for week in weeks}
     else:
-        features = np.unique(np.concatenate([dat_dict[week]['x'].columns.values for week in weeks]))
+        x_dat = {week: dat_dict[week]['x'].astype(float) for week in weeks}
     # x_dat = {week: dl.filter_transform(dl.week_raw[key][week]['x'][features],
                                    # targets_by_pt=None, key=key, filter=False) for week in weeks}
-    x_dat = {week: dat_dict[week]['x'][features].astype(float) for week in weeks}
     df_times = pd.concat([dat_dict[week]['event_times'] for week in weeks])
     idx = np.unique(df_times.index.values, return_index=True)[1]
     df_times_unique = df_times.iloc[idx]
@@ -303,21 +305,50 @@ def get_epsilon(data):
     epsilon = 0.1 * np.min(vals)
     return epsilon
 
-def filter_by_pt(dataset, targets=None, perc = .15, pt_thresh = 1, meas_thresh = 10, weeks = [0,1,2]):
-    df_drop = [x for x in dataset.index.values if not x.split('-')[1].replace('.','').isnumeric()]
-    dataset = dataset.drop(df_drop)
-    pts = [x.split('-')[0] for x in dataset.index.values]
-    # tmpts = [float(x.split('-')[1]) for x in dataset.index.values if x.replace('.','').isnumeric()]
-    ixs = dataset.index.values
+def filter_by_train_set(x_train, x_test, meas_key, key = 'metabs'):
+    filt1 = filter_by_pt(x_train, perc=meas_key['pt_perc'][key], pt_thresh=meas_key['pt_tmpts'][key],
+                         meas_thresh=meas_key['meas_thresh'][key], weeks = None)
+    filt1_test = x_test[filt1.columns.values]
+    epsilon = get_epsilon(filt1)
+    if '16s' in key:
+        filt1 = np.divide(filt1.T, np.sum(filt1, 1)).T
+        filt1_test = np.divide(filt1_test.T, np.sum(filt1_test,1)).T
+        epsilon = get_epsilon(filt1_test)
+    xout = []
+    for x in [filt1, filt1_test]:
+        if '16s' not in key:
+            transformed = np.log(x+ epsilon)
+        else:
+            geom_means = np.exp(np.mean(np.log(x + epsilon), 1))
+            temp = np.divide(x.T, geom_means).T
+            epsilon = get_epsilon(temp)
+            transformed = np.log(temp + epsilon)
+        xout.append(transformed)
+    xtr, xtst = xout[0], xout[1]
+    filt2 = filter_vars(xtr, perc=meas_key['var_perc'][key], weeks = None)
+    filt2_test = xtst[filt2.columns.values]
 
+    dem = np.std(filt2,0)
+    if (dem == 0).any():
+        dem = np.where(np.std(filt2, 0) == 0, 1, np.std(filt2, 0))
+    x_train_out = (filt2 - np.mean(filt2, 0))/dem
+    x_test_out = (filt2_test - np.mean(filt2,0))/dem
+    return x_train_out, x_test_out
+
+def filter_by_pt(dataset, targets=None, perc = .15, pt_thresh = 1, meas_thresh = 10, weeks = [0,1,2]):
+    # tmpts = [float(x.split('-')[1]) for x in dataset.index.values if x.replace('.','').isnumeric()]
     # mets is dataset with ones where data is present, zeros where it is not
     mets = np.zeros(dataset.shape)
-    try:
-        mets[dataset > meas_thresh] = 1
-    except:
-        print('debug')
+    mets[dataset > meas_thresh] = 1
+
 
     if weeks is not None:
+        df_drop = [x for x in dataset.index.values if not x.split('-')[1].replace('.', '').isnumeric()]
+        dataset = dataset.drop(df_drop)
+        mets = np.zeros(dataset.shape)
+        mets[dataset > meas_thresh] = 1
+        pts = [x.split('-')[0] for x in dataset.index.values]
+        ixs = dataset.index.values
         ix_add = [i for i in range(len(ixs)) if float(ixs[i].split('-')[1]) in weeks]
         oh = np.zeros(len(pts))
         oh[np.array(ix_add)] = 1
@@ -330,6 +361,7 @@ def filter_by_pt(dataset, targets=None, perc = .15, pt_thresh = 1, meas_thresh =
 
     # if measurement of a microbe/metabolite only exists in less than pt_thresh timepoints, set that measurement to zero
     if pt_thresh > 1:
+        pts = [x.split('-')[0] for x in dataset.index.values]
         for pt in pts:
             ixs = np.where(np.array(pts) == pt)[0]
             mets_pt = mets[ixs,:]

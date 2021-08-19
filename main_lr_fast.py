@@ -17,7 +17,8 @@ from sklearn.model_selection import StratifiedKFold, GridSearchCV
 
 warnings.filterwarnings("ignore")
 
-def train_lr_folds(x, y, lambda_min_ratio = .001, path_len = 200, num_folds = 5):
+def train_lr_folds(x, y, lambda_min_ratio = .001, path_len = 200, num_folds = 5,
+                   pt_perc = 5, pt_tmpts = 1, meas_thresh = 10, key = 'metabs'):
 
     num_rec = np.sum(y)
     if num_folds > num_rec:
@@ -35,6 +36,7 @@ def train_lr_folds(x, y, lambda_min_ratio = .001, path_len = 200, num_folds = 5)
         #     train_index, test_index = ix
         x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
+
 
         num_rec = np.sum(y_train)
         if num_folds > num_rec:
@@ -76,7 +78,7 @@ def train_lr_folds(x, y, lambda_min_ratio = .001, path_len = 200, num_folds = 5)
     return final_res_dict
 
 
-def train_lr(x, y, path_len = 300, path_out = '', plot_lambdas = False):
+def train_lr(x, y, path_len = 300, path_out = '', plot_lambdas = False, meas_key = None, key = 'metabs'):
     if x.shape[0] < x.shape[1]:
         lambda_min_ratio = 0.0001
     else:
@@ -93,6 +95,7 @@ def train_lr(x, y, path_len = 300, path_out = '', plot_lambdas = False):
         train_index, test_index = ix_in
         x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
         y_train, y_test = y[train_index], y[test_index]
+        x_train, x_test = filter_by_train_set(x_train, x_test, meas_key, key = key)
 
         ix_inner2 = leave_one_out_cv(x_train, y_train)
         lamb_dict = {}
@@ -168,8 +171,11 @@ def train_lr(x, y, path_len = 300, path_out = '', plot_lambdas = False):
 
         probs.append(risk_scores[:,1].item())
         outcomes.append(y_test.item())
+        coefs = model_out.coef_
+        out_df = pd.DataFrame({'odds_ratio':np.zeros(x.shape[1])}, index = x.columns.values)
+        out_df.loc[x_train.columns.values] = coefs.T
 
-        model_out_dict[ic_in] = model_out
+        model_out_dict[ic_in] = out_df
 
     score = sklearn.metrics.roc_auc_score(outcomes, probs)
 
@@ -203,9 +209,9 @@ if __name__ == "__main__":
         if not os.path.isdir(args.o):
             os.mkdir(args.o)
     if args.i is None:
-        args.i = 'metabs_toxin'
+        args.i = 'metabs'
     if args.type is None:
-        args.type = 'auc'
+        args.type = 'coef'
     if args.week is None:
         args.week = 0
     else:
@@ -219,13 +225,17 @@ if __name__ == "__main__":
         if len(args.week)==1:
             args.week = args.week[0]
 
-    dl = dataLoader(pt_perc={'metabs': .25, '16s': .1, 'scfa': 0, 'toxin':0}, meas_thresh=
-            {'metabs': 0, '16s': 10, 'scfa': 0, 'toxin':0}, var_perc={'metabs': 25, '16s': 5, 'scfa': 0, 'toxin':0})
+    dl = dataLoader(pt_perc=0, meas_thresh=0, var_perc=0, pt_tmpts = 1)
+    meas_key = {'pt_perc':{'metabs':0.25, '16s':0.1, 'scfa': 0, 'toxin': 0},
+                'meas_thresh':{'metabs':0, '16s':10,'scfa':0,'toxin':0},
+                'var_perc':{'metabs':50, '16s':5,'scfa':0,'toxin':0},
+                'pt_tmpts':{'metabs':1, '16s':1,'scfa':1,'toxin':1}}
 
     if isinstance(args.week, list):
-        x, y, event_times = get_slope_data(dl, args.i, args.week)
+        dat_dict = dl.week_raw[args.i]
+        x, y, event_times = get_slope_data(dat_dict, args.week)
     else:
-        data = dl.week[args.i][args.week]
+        data = dl.week_raw[args.i][args.week]
         x, y, event_times = data['x'], data['y'], data['event_times']
         x.index = [xind.split('-')[0] for xind in x.index.values]
 
@@ -245,12 +255,12 @@ if __name__ == "__main__":
         if args.folds == 1:
             final_res_dict = train_lr_folds(x_train0, y_train0, num_folds=args.num_folds)
         else:
-            final_res_dict = train_lr(x_train0, y_train0, path_out = path_out)
+            final_res_dict = train_lr(x_train0, y_train0, path_out = path_out, meas_key = meas_key, key = args.i)
     elif args.type == 'coef':
         if args.folds == 1:
             final_res_dict = train_lr_folds(x,y, num_folds=args.num_folds)
         else:
-            final_res_dict = train_lr(x,y, path_out = path_out)
+            final_res_dict = train_lr(x,y, path_out = path_out, meas_key = meas_key, key = args.i)
 
     final_res_dict['data'] = (x, y)
 
