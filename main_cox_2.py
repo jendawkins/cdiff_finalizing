@@ -18,7 +18,8 @@ from sklearn.model_selection import StratifiedKFold, GridSearchCV
 warnings.filterwarnings("ignore")
 
 
-def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_folds = None):
+def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_folds = None,
+              meas_key = None, key = 'metabs'):
     if num_folds is None:
         print('none')
     else:
@@ -35,12 +36,21 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
     for ic_in, ix_in in enumerate(ix_inner):
         train_index, test_index = ix_in
         x_train, x_test = x.iloc[train_index, :], x.iloc[test_index, :]
+        week = x_train['week']
+        outcome = x_train['outcome']
+        x_train_, x_test_ = filter_by_train_set(x_train.drop(['week','outcome'], axis = 1),
+                                              x_test.drop(['week','outcome'], axis = 1), meas_key, key=key)
+        temp = x_train_.copy()
+        temp['week'], temp['outcome'] = x_train['week'], x_train['outcome']
+        x_train = temp.copy()
+
+        temp = x_test_.copy()
+        temp['week'], temp['outcome'] = x_test['week'], x_test['outcome']
+        x_test = temp.copy()
 
         if np.sum(x_test['outcome'].values)<1:
             continue
 
-        week = x_train['week']
-        outcome = x_train['outcome']
         x_train_ = x_train.drop(['week','outcome'], axis = 1)
         yy = list(zip(outcome, week))
         y_arr = np.array(yy, dtype = [('e.tdm', '?'), ('t.tdm', '<f8')])
@@ -123,6 +133,7 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
                 if len(test_ix)>=2:
                     ci = concordance_index_censored(e_outcomes_dict[i][ic_in2].astype(bool), e_times_dict[i][ic_in2],
                                                                        hazards_dict[i][ic_in2])[0]
+
                     if not np.isnan(ci):
                         score_dict[i][ic_in2] = ci
 
@@ -154,7 +165,11 @@ def train_cox(x, outer_split = leave_two_out, inner_split = leave_two_out, num_f
         event_times.append(x_test['week'])
         event_outcomes.append(x_test['outcome'])
 
-        model_out_dict[ic_in] = model_out
+        coefs = model_out.coef_[:,ix_max]
+        out_df = pd.DataFrame({'odds_ratio':np.zeros(x.shape[1])}, index = x.columns.values)
+        out_df.loc[x_train.columns.values[:-2]] = np.expand_dims(coefs,1)
+
+        model_out_dict[ic_in] = out_df
         if len(test_index) > 1:
             ci = concordance_index_censored(x_test['outcome'].astype(bool), x_test['week'], risk_scores)[0]
             if not np.isnan(ci):
@@ -215,12 +230,16 @@ if __name__ == "__main__":
         if len(args.week)==1:
             args.week = args.week[0]
 
-    dl = dataLoader(pt_perc={'metabs': .25, '16s': .1, 'scfa': 0, 'toxin':0}, meas_thresh=
-        {'metabs': 0, '16s': 10, 'scfa': 0, 'toxin':0}, var_perc={'metabs': 15, '16s': 5, 'scfa': 0, 'toxin':0})
+    dl = dataLoader(pt_perc=0, meas_thresh=0, var_perc=0, pt_tmpts = 1)
+    meas_key = {'pt_perc':{'metabs':0.25, '16s':0.1, 'scfa': 0, 'toxin': 0},
+                'meas_thresh':{'metabs':0, '16s':10,'scfa':0,'toxin':0},
+                'var_perc':{'metabs':50, '16s':5,'scfa':0,'toxin':0},
+                'pt_tmpts':{'metabs':1, '16s':1,'scfa':1,'toxin':1}}
     if isinstance(args.week, list):
-        x, outcomes, event_times = get_slope_data(dl, args.i, args.week)
+        dat_dict = dl.week_raw[args.i]
+        x, y, event_times = get_slope_data(dat_dict, args.week)
     else:
-        data = dl.week[args.i][args.week]
+        data = dl.week_raw[args.i][args.week]
         x, outcomes, event_times = data['x'], data['y'], data['event_times']
         x.index = [xind.split('-')[0] for xind in x.index.values]
     x['week'] = event_times
@@ -237,10 +256,10 @@ if __name__ == "__main__":
         train_index, test_index = ixs[args.ix]
         x_train0, x_test0 = x.iloc[train_index, :], x.iloc[test_index, :]
 
-        final_res_dict = train_cox(x_train0, num_folds=args.num_folds)
+        final_res_dict = train_cox(x_train0, num_folds=args.num_folds, meas_key = meas_key, key = args.i)
             # final_res_dict = train_cox(x_train0)
     elif args.type == 'coef':
-        final_res_dict = train_cox(x, num_folds=args.num_folds)
+        final_res_dict = train_cox(x, num_folds=args.num_folds, meas_key = meas_key, key = args.i)
             # final_res_dict = train_cox(x)
 
     final_res_dict['data'] = x
