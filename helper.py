@@ -10,19 +10,6 @@ import os
 import scipy.stats as st
 from collections import defaultdict
 
-def drop_recurrers(ylist, weeks):
-    y, times = list(zip(*ylist))
-    yy = pd.concat(list(y))
-    tt = pd.concat(list(times))
-    idx = np.unique(tt.index.values, return_index=True)[1]
-    df_times_unique = tt.iloc[idx]
-    pts_drop = df_times_unique.index.values[df_times_unique <= np.max(weeks)]
-    yout = yy.drop(pts_drop)
-    tout = tt.drop(pts_drop)
-    return yout[~yout.index.duplicated(keep='first')]
-
-
-
 def get_slope_data(dat_dict, weeks, combine_features = 'union', log_transform = False):
     if combine_features is not None:
         if combine_features == 'intersection':
@@ -33,8 +20,17 @@ def get_slope_data(dat_dict, weeks, combine_features = 'union', log_transform = 
     else:
         x_dat = {week: dat_dict[week]['x'].astype(float) for week in weeks}
     if log_transform:
-        epsilon = get_epsilon(x_dat[1])
-        x_dat = {key: np.log(value + epsilon) for key, value in x_dat.items()}
+        if dat_dict[1]['x'].shape[1] == 2509:
+            for w,x in x_dat.items():
+                x = np.divide(x.T, np.sum(x, 1)).T
+                epsilon = get_epsilon(x)
+                geom_means = np.exp(np.mean(np.log(x + epsilon), 1))
+                transformed = np.divide(x.T, geom_means).T
+                epsilon = get_epsilon(transformed)
+                x_dat[w] = np.log(transformed + epsilon)
+        else:
+            epsilon = get_epsilon(x_dat[1])
+            x_dat = {key: np.log(value + epsilon) for key, value in x_dat.items()}
     # x_dat = {week: dl.filter_transform(dl.week_raw[key][week]['x'][features],
                                    # targets_by_pt=None, key=key, filter=False) for week in weeks}
     df_times = pd.concat([dat_dict[week]['event_times'] for week in weeks])
@@ -341,11 +337,13 @@ def filter_by_train_set(x_train, x_test, meas_key, key = 'metabs', log_transform
             else:
                 transformed = x
         else:
-            x = np.divide(x.T, np.sum(x,1)).T
-            geom_means = np.exp(np.mean(np.log(x + epsilon), 1))
-            transformed = np.divide(x.T, geom_means).T
             if log_transform:
+                x = np.divide(x.T, np.sum(x,1)).T
+                geom_means = np.exp(np.mean(np.log(x + epsilon), 1))
+                transformed = np.divide(x.T, geom_means).T
                 transformed = np.log(transformed + epsilon)
+            else:
+                transformed = x
         xout.append(transformed)
     xtr, xtst = xout[0], xout[1]
 
