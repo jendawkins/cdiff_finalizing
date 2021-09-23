@@ -3,3 +3,5 @@ phylo_placement_filt_005
 PredictiveAnalysisResults
 DEseq2
 __pycache__
+*.pkl
+FinalRuns
