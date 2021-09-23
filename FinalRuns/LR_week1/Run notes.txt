@@ -1,5 +1,0 @@
-Run 1: 10:56 AM June 10, 2021
-- Logistic regression 
-- Week 1
-- Metabs; filtering dataLoader(pt_perc=.25, meas_thresh=0, var_perc=15, pt_tmpts=1)
-- Not filtering by class
